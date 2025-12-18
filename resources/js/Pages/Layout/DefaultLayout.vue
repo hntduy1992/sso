@@ -47,22 +47,21 @@ watch(
         <v-main>
             <slot/>
         </v-main>
-
-        <v-snackbar
-            v-model="showSnackbar"
-            :color="color"
-            elevation="24"
-            location="top right"
-            timeout="3000"
-            v-if="message"
-        >
-            {{ message }}
-
-            <template v-slot:actions>
-                <v-btn variant="text" @click="showSnackbar = false">Đóng</v-btn>
-            </template>
-        </v-snackbar>
     </v-app>
+    <v-snackbar
+        v-model="showSnackbar"
+        :color="color"
+        elevation="24"
+        location="top right"
+        timeout="3000"
+        v-if="message"
+    >
+        {{ message }}
+
+        <template v-slot:actions>
+            <v-btn variant="text" @click="showSnackbar = false">Đóng</v-btn>
+        </template>
+    </v-snackbar>
 </template>
 
 <style scoped>

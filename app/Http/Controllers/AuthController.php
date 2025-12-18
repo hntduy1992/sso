@@ -27,4 +27,17 @@ class AuthController extends Controller
             'message' => 'Thông tin đăng nhập không chính xác.',
         ]);
     }
+
+    public function logout(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        //Đăng xuất guard web
+        Auth::guard('web')->logout();
+
+        //Hủy bỏ Session hiện tại
+        $request->session()->invalidate();
+        //Tạo lại CSRF
+        $request->session()->regenerateToken();
+        //Về lại trang chủ hoặc login
+        return redirect('/login');
+    }
 }

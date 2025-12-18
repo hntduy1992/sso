@@ -11,8 +11,9 @@ Route::get('/login', [AuthController::class, 'login'])->name('login');
 Route::post('/login', [AuthController::class, 'validate'])->name('login.validate');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('user.index');
     });
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 });
