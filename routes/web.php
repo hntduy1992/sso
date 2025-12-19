@@ -15,5 +15,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('users')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('user.index');
     });
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/', function () {
+        return redirect()->route('dashboard.index');
+    });
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 });

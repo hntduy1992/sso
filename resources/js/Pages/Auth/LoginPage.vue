@@ -9,8 +9,18 @@ const form = useForm({
     username: '',
     password: '',
 });
+const accounts = [
+    {username: 'super_admin', password: 'admin', text: 'Super Administrator'},
+    {username: 'admin', password: 'admin', text: 'Administrator'},
+    {username: 'user', password: 'user', text: 'User'},
+]
+const submit = (account) => {
 
-const submit = () => {
+    if (account) {
+        form.username = account.username;
+        form.password = account.password;
+    }
+
     form.post('/login', {
         onSuccess: () => {
         },
@@ -36,7 +46,6 @@ const submit = () => {
                 <v-card class="elevation-12 pa-4" rounded="lg">
                     <v-card-text>
                         <v-form @submit.prevent="submit">
-
                             <v-text-field
                                 v-model="form.username"
                                 label="Username"
@@ -62,15 +71,40 @@ const submit = () => {
                             ></v-text-field>
 
                             <v-btn
-                                type="submit"
-                                color="primary"
+                                type="button"
+                                color="error"
                                 block
                                 size="large"
                                 class="mt-4"
                                 :loading="form.processing"
                                 rounded="pill"
+                                @click="submit({username:'super_admin',password:'admin'})"
                             >
-                                Đăng nhập
+                                Đăng nhập Super Admin
+                            </v-btn>
+                            <v-btn
+                                type="button"
+                                color="warning"
+                                block
+                                size="large"
+                                class="mt-4"
+                                :loading="form.processing"
+                                rounded="pill"
+                                @click="submit({username:'admin',password:'admin'})"
+                            >
+                                Đăng nhập Admin
+                            </v-btn>
+                            <v-btn
+                                type="button"
+                                color="info"
+                                block
+                                size="large"
+                                class="mt-4"
+                                :loading="form.processing"
+                                rounded="pill"
+                                @click="submit({username:'user',password:'user'})"
+                            >
+                                Đăng nhập User
                             </v-btn>
 
                         </v-form>
