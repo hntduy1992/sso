@@ -27,8 +27,9 @@ const acceptLogout = () => {
 
         <v-card min-width="250">
             <v-list>
-                <v-list-item>{{ page.props.auth.user.full_name }}</v-list-item>
-                <v-list-item :tag="Link" link @click="logout">Logout</v-list-item>
+                <v-list-item prepend-icon="mdi-shield-account-outline">{{ page.props.auth.user.full_name }}</v-list-item>
+                <v-list-item prepend-icon="mdi-card-account-details">Change Profile</v-list-item>
+                <v-list-item :tag="Link" link @click="logout" prepend-icon="mdi-logout">Logout</v-list-item>
             </v-list>
         </v-card>
     </v-menu>
