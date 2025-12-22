@@ -2,11 +2,13 @@
 import {ref} from "vue";
 import CreateForm from "@/Pages/Users/CreateForm.vue";
 import ConfirmDeleteForm from "@/Pages/Users/ConfirmDeleteForm.vue";
+import {Link, router} from "@inertiajs/vue3";
 
-defineProps({
+const props = defineProps({
     users: Object,
     filters: Object
 })
+
 
 const selected = ref([])
 
@@ -55,14 +57,16 @@ const headers = ref([
         }
     },
 ])
+
 const createDrawer = ref(false)
-const loadItems = () => {
 
-}
+const filters = ref({
+    search: props.filters.search || null,
+    page: props.filters.page || 1,
+    perPage: props.filters.perPage || 1,
+    sortBy: props.filters.sortBy || [],
+})
 
-const editItem = (item) => {
-
-}
 const Item = ref(null)
 const deleteItem = (item) => {
     Item.value = item
@@ -79,6 +83,38 @@ const createSubmit = (closeForm) => {
     createDrawer.value = !closeForm.closeForm
 }
 
+const isLoading = ref(false)
+const gotoPage = (e) => {
+    router.visit('/users', {
+        only: ['users', 'filters'],
+        data: {
+            search: filters.value.search,
+            perPage: filters.value.perPage,
+            page: e,
+            sortBy: filters.value.sortBy
+        }
+    })
+}
+const goSearch = () => {
+    router.visit('/users', {
+        only: ['users', 'filters'],
+        data: {
+            search: filters.value.search,
+            perPage: filters.value.perPage,
+            sortBy: filters.value.sortBy
+        }
+    })
+}
+const goSortBy = (e) => {
+    router.visit('/users', {
+        only: ['users', 'filters'],
+        data: {
+            search: filters.value.search,
+            perPage: filters.value.perPage,
+            sortBy: e
+        }
+    })
+}
 
 </script>
 
@@ -94,20 +130,32 @@ const createSubmit = (closeForm) => {
             <span class=""></span>
         </v-card-title>
         <v-card-text>
+            {{ isLoading }}|{{ filters }}
             <v-data-table-server
                 :headers="headers"
-                :items="users.data"
-                :items-length="users.total"
-                @update:options="loadItems"
+                :items="props.users.data"
+                :items-length="props.users.total"
+                :page="filters.page"
+                :items-per-page="filters.perPage"
+                @update:page="gotoPage"
+                @update:sortBy="goSortBy"
                 show-select
                 v-model="selected"
             >
                 <template v-slot:top>
-                    <v-text-field class="mt-2" label="Search" placeholder="Please input text to search..."
+                    <v-text-field v-model="filters.search"
+                                  class="mt-2"
+                                  label="Search"
+                                  placeholder="Please input text to search..."
                                   variant="outlined"
                                   density="compact" clearable hide-details>
                         <template v-slot:append>
-                            <v-btn prepend-icon="mdi-magnify" color="primary">Tìm</v-btn>
+                            <v-btn
+                                prepend-icon="mdi-magnify"
+                                color="primary"
+                                @click="goSearch"
+                            >Tìm
+                            </v-btn>
                         </template>
                     </v-text-field>
 
