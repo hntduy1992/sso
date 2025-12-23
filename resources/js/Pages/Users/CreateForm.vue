@@ -1,11 +1,30 @@
 <script setup>
 import {rules} from "@/Utils/inputRules.js";
+import {router, useForm,} from "@inertiajs/vue3";
+import {ref} from "vue";
 
 const emits = defineEmits(['OnCancel', 'OnSuccess'])
-
+const isLoading = ref(false)
+const userForm = useForm({
+    username: '',
+    password: '',
+    full_name: ''
+})
 const submit = (close) => {
-    console.log('submit-' + close)
-    // logic create
+    isLoading.value = true
+    userForm.post('/users/create', {
+        only: ['users,filters'],
+        onSuccess: (res) => {
+            emits('OnSuccess', {closeForm: close})
+        },
+        onError: (err) => {
+            console.log(err)
+        },
+        onFinish: () => {
+            isLoading.value = false
+        }
+    })
+
     emits('OnSuccess', {closeForm: close})
 }
 </script>
@@ -19,19 +38,26 @@ const submit = (close) => {
         </v-toolbar>
         <v-form @submit.prevent="submit">
             <v-text-field label="Username"
+                          v-model="userForm.username"
                           variant="outlined"
                           density="compact"
                           prepend-icon="mdi-account"
                           :rules="[...rules.required,...rules.lowerCaseNumber]"
+                          :error-messages="userForm.errors?.username"
                           clearable
             ></v-text-field>
             <v-text-field label="Password"
+                          v-model="userForm.password"
                           variant="outlined"
                           density="compact"
                           prepend-icon="mdi-key"
                           :rules="[...rules.required,...rules.strongPassword]"
+                          :error-messages="userForm.errors?.password"
             ></v-text-field>
-            <v-text-field label="Full name" variant="outlined" density="compact"
+            <v-text-field label="Full name"
+                          v-model="userForm.full_name"
+                          variant="outlined"
+                          density="compact"
                           prepend-icon="mdi-card-account-details-outline"></v-text-field>
 
             <v-toolbar color="transparent">

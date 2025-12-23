@@ -11,7 +11,7 @@ export const rules = {
     strongPassword: [
         value => {
             const pattern = /^[a-zA-Z](?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{7,}$/
-            return pattern.test(value) || 'Mật khẩu từ 8 ký tự, ít nhất 1 chữ, 1 số, 1 ký tự @$!%*?&.'
+            return pattern.test(value) || 'Mật khẩu từ 8 ký tự, ít nhất 1 chữ in hoa, 1 số, 1 ký tự @$!%*?&.'
         }
     ]
 }

@@ -17,6 +17,7 @@ const headers = ref([
         title: 'STT',
         width: '100',
         key: 'index',
+        sortable: false,
         headerProps: {
             class: 'font-weight-bold text-uppercase'
         }
@@ -25,6 +26,7 @@ const headers = ref([
         title: 'Full name',
         align: 'start',
         key: 'full_name',
+        sortable: false,
         headerProps: {
             class: 'font-weight-bold text-uppercase'
         }
@@ -33,6 +35,7 @@ const headers = ref([
         title: 'Username',
         align: 'center',
         key: 'username',
+        sortable: false,
         headerProps: {
             class: 'font-weight-bold text-uppercase'
         }
@@ -63,8 +66,7 @@ const createDrawer = ref(false)
 const filters = ref({
     search: props.filters.search || null,
     page: props.filters.page || 1,
-    perPage: props.filters.perPage || 1,
-    sortBy: props.filters.sortBy || [],
+    perPage: props.filters.perPage || 10,
 })
 
 const Item = ref(null)
@@ -91,7 +93,6 @@ const gotoPage = (e) => {
             search: filters.value.search,
             perPage: filters.value.perPage,
             page: e,
-            sortBy: filters.value.sortBy
         }
     })
 }
@@ -101,17 +102,15 @@ const goSearch = () => {
         data: {
             search: filters.value.search,
             perPage: filters.value.perPage,
-            sortBy: filters.value.sortBy
         }
     })
 }
-const goSortBy = (e) => {
+const changePerPage = (e) => {
     router.visit('/users', {
         only: ['users', 'filters'],
         data: {
             search: filters.value.search,
-            perPage: filters.value.perPage,
-            sortBy: e
+            perPage: e,
         }
     })
 }
@@ -130,7 +129,6 @@ const goSortBy = (e) => {
             <span class=""></span>
         </v-card-title>
         <v-card-text>
-            {{ isLoading }}|{{ filters }}
             <v-data-table-server
                 :headers="headers"
                 :items="props.users.data"
@@ -138,7 +136,7 @@ const goSortBy = (e) => {
                 :page="filters.page"
                 :items-per-page="filters.perPage"
                 @update:page="gotoPage"
-                @update:sortBy="goSortBy"
+                @update:itemsPerPage="changePerPage"
                 show-select
                 v-model="selected"
             >

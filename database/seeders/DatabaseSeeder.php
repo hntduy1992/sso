@@ -37,6 +37,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Tạo quyền
+        Permission::create(['name' => 'manage roles']);
+        Permission::create(['name' => 'manage permissions']);
         Permission::create(['name' => 'manage users']);
         Permission::create(['name' => 'manage departments']);
         Permission::create(['name' => 'view dashboard']);
