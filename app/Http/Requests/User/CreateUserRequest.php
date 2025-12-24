@@ -25,7 +25,8 @@ class CreateUserRequest extends FormRequest
     {
         return [
             'username'=>'required|unique:users,username',
-            'password'=>'required|regex:/^[a-zA-Z](?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{7,}$/'
+            'password'=>'required|regex:/^[a-zA-Z](?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{7,}$/',
+              'role'=>'required|exists:roles,id'
         ];
     }
     public function messages()
@@ -35,6 +36,8 @@ class CreateUserRequest extends FormRequest
             'password.required'=>'Vui lòng không được bỏ trống!.',
             'username.unique'=>'Username đã tồn tại!.',
             'password.regex'=>'Mật khẩu từ 8 ký tự, ít nhất 1 chữ in hoa, 1 số, 1 ký tự @$!%*?&.',
+            'role.required'=>'Vui lòng không được bỏ trống!.',
+            'role.exists'=>'Vai trò không tồn tại!.',
         ];
     }
 }

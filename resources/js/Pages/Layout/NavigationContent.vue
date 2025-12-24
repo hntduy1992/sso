@@ -5,18 +5,20 @@ import {Link, router, usePage} from "@inertiajs/vue3";
 
 const page = usePage()
 
-const test = ()=>{
-    router.post('/users/create',{
-        username:'test',
-        password:'123456',
-        full_name:'test user'
-    },
+const test = () => {
+    router.post('/users/create', {
+            username: 'test11',
+            password: 'a1234567@A',
+            full_name: 'test user',
+            role: 1
+        },
         {
-            onSuccess:(res)=>{
+            onSuccess: (res) => {
                 console.log(res)
             },
-            onError:(err)=>{
-                console.log(err)},
+            onError: (err) => {
+                console.log(err)
+            },
         }
     )
 }
@@ -25,11 +27,11 @@ const test = ()=>{
 <template>
     <v-list>
         <v-list-item link @click="router.visit('/dashboard')" prepend-icon="mdi-view-dashboard">Dashboard</v-list-item>
-        <v-list-item v-if="can('manage users')"  @click="router.visit('/users')"
+        <v-list-item v-if="can('manage users')" @click="router.visit('/users')"
                      prepend-icon="mdi-account-group">Accounts
         </v-list-item>
         <v-list-item @click="test"
-                    >Test
+        >Test
         </v-list-item>
     </v-list>
 </template>

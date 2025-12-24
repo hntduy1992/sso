@@ -1,6 +1,6 @@
 <script setup>
 import {rules} from "@/Utils/inputRules.js";
-import {router, useForm,} from "@inertiajs/vue3";
+import {router, useForm, usePage,} from "@inertiajs/vue3";
 import {ref} from "vue";
 
 const emits = defineEmits(['OnCancel', 'OnSuccess'])
@@ -8,12 +8,17 @@ const isLoading = ref(false)
 const userForm = useForm({
     username: '',
     password: '',
-    full_name: ''
+    full_name: '',
+    role: null
 })
+
+const page = usePage()
+const roles = page.props.roles
+
 const submit = (close) => {
     isLoading.value = true
     userForm.post('/users/create', {
-        only: ['users,filters'],
+        only: ['users,filters', 'roles','flash'],
         onSuccess: (res) => {
             emits('OnSuccess', {closeForm: close})
         },
@@ -24,9 +29,9 @@ const submit = (close) => {
             isLoading.value = false
         }
     })
-
-    emits('OnSuccess', {closeForm: close})
+    userForm.reset()
 }
+
 </script>
 
 <template>
@@ -59,7 +64,16 @@ const submit = (close) => {
                           variant="outlined"
                           density="compact"
                           prepend-icon="mdi-card-account-details-outline"></v-text-field>
-
+            <v-select label="Vai trò"
+                      v-model="userForm.role"
+                      :items="roles"
+                      item-value="id"
+                      item-title="name"
+                      variant="outlined"
+                      density="compact"
+                      prepend-icon="mdi-security"
+                      :error-messages="userForm.errors?.role"
+            ></v-select>
             <v-toolbar color="transparent">
                 <v-spacer/>
                 <v-btn color="success" variant="outlined" class="mr-2" @click="submit(true)">Save and Close</v-btn>
