@@ -79,7 +79,6 @@ const updateItem = (item) => {
 }
 const deleteItem = (item) => {
     Item.value = item
-
     deleteDialog.value = true
 }
 
@@ -87,6 +86,12 @@ const deleteDialog = ref(false)
 const deleteItemHandler = () => {
     //Logic delete
     console.log('delete', Item)
+    router.delete('/users/' + Item.value.id + '/delete', {
+        only: ['users', 'filters', 'flash'],
+        onSuccess: (res) => {
+            deleteDialog.value = false
+        }
+    })
 }
 
 const createSubmit = (closeForm) => {
@@ -264,7 +269,7 @@ const changePerPage = (e) => {
     >
         <UpdateInfo v-if="updateDrawer" :User="Item" @OnSuccess="updateSubmit"></UpdateInfo>
     </v-navigation-drawer>
-    <v-dialog v-model="deleteDialog" max-width="340">
+    <v-dialog v-if="deleteDialog" v-model="deleteDialog" max-width="340">
         <ConfirmDeleteForm :user="Item" @OnCancel="deleteDialog=false"
                            @OnAccept="deleteItemHandler"></ConfirmDeleteForm>
     </v-dialog>

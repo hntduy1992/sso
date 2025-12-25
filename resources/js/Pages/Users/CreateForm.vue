@@ -74,7 +74,7 @@ const submit = (close) => {
                       prepend-icon="mdi-security"
                       :error-messages="userForm.errors?.role"
             ></v-select>
-            <v-toolbar color="transparent">
+    Q           <v-toolbar color="transparent">
                 <v-spacer/>
                 <v-btn color="success" variant="outlined" class="mr-2" @click="submit(true)">Save and Close</v-btn>
                 <v-btn color="primary" variant="elevated" @click="submit(false)">Save</v-btn>

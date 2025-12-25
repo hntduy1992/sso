@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\User\CreateUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -12,6 +13,8 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index(Request $request)
     {
         // 1. Lấy tham số từ request (Vuetify gửi lên)
@@ -76,4 +79,19 @@ class UserController extends Controller
         return redirect()->back()->with('success', 'Cập nhật thành công!');
     }
 
+    public function destroy(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $this->authorize('delete', $user);
+        if (!$user) {
+
+            return back()->with('error', 'User not found!');
+        }
+        if ($user->hasRole('super-admin') && !$request->user()->hasRole('super-admin')) {
+            return back()->with('error', `Bạn không có quyền xóa ${user->name}`);
+        }
+
+        $user->delete();
+        return back()->with('success', 'Đã xóa thành công 1 row.');
+    }
 }

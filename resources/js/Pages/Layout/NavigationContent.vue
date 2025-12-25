@@ -22,6 +22,10 @@ const test = () => {
         }
     )
 }
+
+const testDelete = ()=>{
+    router.delete('/users/1/delete')
+}
 </script>
 
 <template>
@@ -32,7 +36,9 @@ const test = () => {
         </v-list-item>
         <v-list-item @click="test"
         >Test
-            {{page.props.auth.user.roles}}
+            {{ page.props.auth.user.roles }}
+        </v-list-item>
+        <v-list-item @click="testDelete">Test
         </v-list-item>
     </v-list>
 </template>
