@@ -44,8 +44,8 @@ watch(
 
             <UserControl/>
         </v-app-bar>
-        <v-main class="bg-blue-grey-lighten-4">
-            <div class="bg-white ma-2 rounded">
+        <v-main class="bg-blue-grey-lighten-4 d-flex">
+            <div class="ma-2 rounded flex-grow-1">
                 <slot/>
             </div>
         </v-main>

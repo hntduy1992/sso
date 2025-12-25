@@ -3,6 +3,7 @@ import {ref} from "vue";
 import CreateForm from "@/Pages/Users/CreateForm.vue";
 import ConfirmDeleteForm from "@/Pages/Users/ConfirmDeleteForm.vue";
 import {Link, router} from "@inertiajs/vue3";
+import UpdateInfo from "@/Pages/Users/UpdateInfo.vue";
 
 const props = defineProps({
     users: Object,
@@ -62,6 +63,7 @@ const headers = ref([
 ])
 
 const createDrawer = ref(false)
+const updateDrawer = ref(false)
 
 const filters = ref({
     search: props.filters.search || null,
@@ -70,8 +72,14 @@ const filters = ref({
 })
 
 const Item = ref(null)
+
+const updateItem = (item) => {
+    Item.value = item
+    updateDrawer.value = true
+}
 const deleteItem = (item) => {
     Item.value = item
+
     deleteDialog.value = true
 }
 
@@ -84,7 +92,9 @@ const deleteItemHandler = () => {
 const createSubmit = (closeForm) => {
     createDrawer.value = !closeForm.closeForm
 }
-
+const updateSubmit = () => {
+    updateDrawer.value = false
+}
 const isLoading = ref(false)
 const gotoPage = (e) => {
     router.visit('/users', {
@@ -200,6 +210,7 @@ const changePerPage = (e) => {
                                     rounded="lg"
                                     title="Edit"
                                     link
+                                    @click="updateItem(item)"
                                 >
                                     <template v-slot:prepend>
                                         <v-icon color="warning">mdi-pencil</v-icon>
@@ -243,10 +254,22 @@ const changePerPage = (e) => {
     >
         <CreateForm @OnCancel="createDrawer=false" @OnSuccess="createSubmit"></CreateForm>
     </v-navigation-drawer>
+
+    <v-navigation-drawer
+        v-model="updateDrawer"
+        location="right"
+        temporary
+        width="500"
+        scrim="black"
+    >
+        <UpdateInfo v-if="updateDrawer" :User="Item" @OnSuccess="updateSubmit"></UpdateInfo>
+    </v-navigation-drawer>
     <v-dialog v-model="deleteDialog" max-width="340">
         <ConfirmDeleteForm :user="Item" @OnCancel="deleteDialog=false"
                            @OnAccept="deleteItemHandler"></ConfirmDeleteForm>
     </v-dialog>
+
+
 </template>
 
 <style scoped>

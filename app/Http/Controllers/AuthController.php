@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Auth\LoginRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -18,6 +20,14 @@ class AuthController extends Controller
     {
         $request->validated();
         $credentials = $request->safe(['username', 'password']);
+        //check roles
+        $user = User::query()->where('username', $request->input('username'))->first();
+        $roles = $user->getRoleNames();
+        if (!$roles || $roles->isEmpty()) {
+            return back()->withErrors([
+                'message' => 'Tài khoản chưa phân quyền!',
+            ]);
+        }
         if (Auth::attempt($credentials)) {
             $request->session()->regenerateToken();
 

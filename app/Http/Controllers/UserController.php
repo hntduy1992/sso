@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\User\CreateUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -50,9 +51,29 @@ class UserController extends Controller
             'password' => Hash::make($request->input('password')),
             'full_name' => $request->input('full_name')
         ]);
-        if($newUser){
+        if ($newUser) {
             $newUser->syncRoles($request->input('role'));
         }
         return redirect()->back()->with('success', 'Thêm mới thành công!');
     }
+
+    public function update(UpdateUserRequest $request, $id)
+    {
+        $request->validated();
+
+        //check request->role['super-admin'] && user->roles != super-admin
+        $newRole = Role::query()->where('id', $request->input('role'))->first();
+        if ($newRole->name === 'super-admin' && !$request->user()->hasRole('super-admin')) {
+            return redirect()->back()->with('error', 'Bạn không có quyền thực hiện tác vụ này!');
+        }
+        $user = User::findOrFail($id);
+        $user->full_name = $request->input('full_name');
+        $user->syncRoles($request->input('role'));
+        $result = $user->saveOrFail();
+        if (!$result) {
+            return redirect()->back()->with('error', 'Cập nhật thất bại!');
+        }
+        return redirect()->back()->with('success', 'Cập nhật thành công!');
+    }
+
 }

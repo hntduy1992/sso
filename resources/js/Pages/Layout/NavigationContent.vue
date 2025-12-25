@@ -6,10 +6,10 @@ import {Link, router, usePage} from "@inertiajs/vue3";
 const page = usePage()
 
 const test = () => {
-    router.post('/users/create', {
-            username: 'test11',
+    router.put('/users/5/update', {
+            username: 'test',
             password: 'a1234567@A',
-            full_name: 'test user',
+            full_name: 'test user hacking',
             role: 1
         },
         {
@@ -32,6 +32,7 @@ const test = () => {
         </v-list-item>
         <v-list-item @click="test"
         >Test
+            {{page.props.auth.user.roles}}
         </v-list-item>
     </v-list>
 </template>

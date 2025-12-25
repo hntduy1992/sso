@@ -14,13 +14,18 @@ const accounts = [
     {username: 'admin', password: 'admin', text: 'Administrator'},
     {username: 'user', password: 'user', text: 'User'},
 ]
-const submit = (account) => {
-
-    if (account) {
-        form.username = account.username;
-        form.password = account.password;
-    }
-
+const submit = () => {
+    form.post('/login', {
+        onSuccess: () => {
+        },
+        onFinish: () => {
+            form.reset('password')
+        }
+    })
+};
+const submitTest = (account) => {
+    form.username = account.username
+    form.password = account.password
     form.post('/login', {
         onSuccess: () => {
         },
@@ -32,19 +37,19 @@ const submit = (account) => {
 </script>
 
 <template>
-    <Head title="Đăng nhập SSO"/>
+    <v-container fluid class="bg-grey-lighten-4 h-100" >
 
-    <v-container fluid class="fill-height bg-grey-lighten-4">
-        <v-row align="center" justify="center">
-            <v-col cols="12" sm="8" md="4" lg="3">
-
+        <div class="d-flex justify-center flex-column h-100">
+            <div class="flex-grow-1 d-flex flex-column align-center justify-center h-100">
                 <div class="text-center mb-6">
                     <h1 class="text-h4 font-weight-bold text-primary">SSO ADMIN</h1>
                     <p class="text-subtitle-1 text-grey">Hệ thống xác thực tập trung</p>
                 </div>
-
-                <v-card class="elevation-12 pa-4" rounded="lg">
+                <v-card class="elevation-12 w-100 w-lg-25 w-md-50 w-sm-75"  rounded="lg"  >
                     <v-card-text>
+                        <v-alert density="compact" class="mb-4 text-center" v-if="form.errors.message" color="error">
+                            {{ form.errors.message }}
+                        </v-alert>
                         <v-form @submit.prevent="submit">
                             <v-text-field
                                 v-model="form.username"
@@ -69,7 +74,18 @@ const submit = (account) => {
                                 :error-messages="form.errors.password"
                                 :disabled="form.processing"
                             ></v-text-field>
-
+                            <v-btn
+                                type="button"
+                                color="primary"
+                                block
+                                size="large"
+                                class="mt-4"
+                                :loading="form.processing"
+                                rounded="pill"
+                                @click="submit"
+                            >
+                                Đăng nhập
+                            </v-btn>
                             <v-btn
                                 type="button"
                                 color="error"
@@ -78,44 +94,19 @@ const submit = (account) => {
                                 class="mt-4"
                                 :loading="form.processing"
                                 rounded="pill"
-                                @click="submit({username:'super_admin',password:'admin'})"
+                                v-for="account of accounts"
+                                @click="submitTest(account)"
                             >
-                                Đăng nhập Super Admin
+                                {{ account.text }}
                             </v-btn>
-                            <v-btn
-                                type="button"
-                                color="warning"
-                                block
-                                size="large"
-                                class="mt-4"
-                                :loading="form.processing"
-                                rounded="pill"
-                                @click="submit({username:'admin',password:'admin'})"
-                            >
-                                Đăng nhập Admin
-                            </v-btn>
-                            <v-btn
-                                type="button"
-                                color="info"
-                                block
-                                size="large"
-                                class="mt-4"
-                                :loading="form.processing"
-                                rounded="pill"
-                                @click="submit({username:'user',password:'user'})"
-                            >
-                                Đăng nhập User
-                            </v-btn>
-
                         </v-form>
                     </v-card-text>
                 </v-card>
-
-                <p class="text-center mt-6 text-caption text-grey">
-                    &copy; 2025 SSO System. Powered by Laravel 12 & Inertia.
-                </p>
-            </v-col>
-        </v-row>
+            </div>
+            <p class="text-center mt-6 text-caption text-grey">
+                &copy; 2025 SSO System. Powered by Laravel 12 & Inertia.
+            </p>
+        </div>
     </v-container>
 </template>
 
