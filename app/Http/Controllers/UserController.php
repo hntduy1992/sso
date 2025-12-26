@@ -94,4 +94,32 @@ class UserController extends Controller
         $user->delete();
         return back()->with('success', 'Đã xóa thành công 1 row.');
     }
+
+    public function destroys(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'ids.*' => 'exists:users,id'
+        ], [
+            'ids.required' => 'Nội dung này bắt buộc',
+            'ids.array' => 'Type phải là mảng',
+        ]);
+        $ids = $request->input('ids');
+        $users = User::whereIn('id', $ids)->get();
+        $deletedCount = 0;
+        $me = $request->user();
+        foreach ($users as $user) {
+            $this->authorize('delete', $user);
+            if ($user->hasRole('super-admin') && !$me->hasRole('super-admin')) {
+                continue;
+            }
+            if ($user->id === $me->id) {
+                continue;
+            }
+            if ($user->delete()) {
+                $deletedCount++;
+            }
+        }
+        return back()->with('success', "Đã xóa thành công $deletedCount row.");
+    }
 }

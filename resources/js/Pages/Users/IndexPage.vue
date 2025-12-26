@@ -81,15 +81,25 @@ const deleteItem = (item) => {
     Item.value = item
     deleteDialog.value = true
 }
-
+const deleteMultiDialog = ref(false)
 const deleteDialog = ref(false)
 const deleteItemHandler = () => {
-    //Logic delete
-    console.log('delete', Item)
     router.delete('/users/' + Item.value.id + '/delete', {
         only: ['users', 'filters', 'flash'],
         onSuccess: (res) => {
             deleteDialog.value = false
+        }
+    })
+}
+const deleteItemsHandler = () => {
+    router.delete('/users/deletes', {
+        data: {
+            ids: selected.value?.map(x => x.id)
+        },
+        only: ['users', 'filters', 'flash'],
+        onSuccess: (res) => {
+            selected.value = []
+            deleteMultiDialog.value = false
         }
     })
 }
@@ -139,7 +149,7 @@ const changePerPage = (e) => {
             <v-btn prepend-icon="mdi-plus" color="success" class="float-end " @click="createDrawer = true">Add Account
             </v-btn>
             <v-badge v-if="selected.length>0" class="mr-2 float-end" :content="selected.length">
-                <v-btn prepend-icon="mdi-delete" color="error">Delete</v-btn>
+                <v-btn prepend-icon="mdi-delete" color="error" @click="deleteMultiDialog=true">Delete</v-btn>
             </v-badge>
             <span class=""></span>
         </v-card-title>
@@ -154,6 +164,7 @@ const changePerPage = (e) => {
                 @update:itemsPerPage="changePerPage"
                 show-select
                 v-model="selected"
+                return-object
             >
                 <template v-slot:top>
                     <v-text-field v-model="filters.search"
@@ -273,7 +284,10 @@ const changePerPage = (e) => {
         <ConfirmDeleteForm :user="Item" @OnCancel="deleteDialog=false"
                            @OnAccept="deleteItemHandler"></ConfirmDeleteForm>
     </v-dialog>
-
+    <v-dialog v-if="deleteMultiDialog" v-model="deleteMultiDialog" max-width="340">
+        <ConfirmDeleteForm :users="selected" @OnCancel="deleteMultiDialog=false"
+                           @OnAccept="deleteItemsHandler"></ConfirmDeleteForm>
+    </v-dialog>
 
 </template>
 
