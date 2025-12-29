@@ -36,25 +36,46 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('user')
         ]);
 
-        // Tạo quyền
-        Permission::create(['name' => 'manage roles']);
-        Permission::create(['name' => 'manage permissions']);
-        Permission::create(['name' => 'manage users']);
-        Permission::create(['name' => 'manage departments']);
-        Permission::create(['name' => 'view dashboard']);
+        //user|admin|super
+        Permission::create(['name' => 'dashboard.view']);
 
-        // Tạo vai trò và gán quyền
-        $superAdminRole = Role::create(['name' => 'super-admin']);
-        $superAdminRole->givePermissionTo(Permission::all());
-        $userSuperAdmin->assignRole($superAdminRole);
+        //super
+        Permission::create(['name' => 'user.list.super']);
+        Permission::create(['name' => 'user.create.super']);
+        Permission::create(['name' => 'user.update.super']);
+        Permission::create(['name' => 'user.view.super']);
+        Permission::create(['name' => 'user.delete.super']);
+        Permission::create(['name' => 'user.reset-password.super']);
+        //admin
+        Permission::create(['name' => 'user.create']);
+        Permission::create(['name' => 'user.update']);
+        Permission::create(['name' => 'user.reset-password']);
+        Permission::create(['name' => 'user.list']);
+        Permission::create(['name' => 'user.view']);
+        Permission::create(['name' => 'user.delete']);
 
+        $superAdminRole = Role::create(['name' => 'super']);
         $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo('view dashboard');
-        $adminRole->givePermissionTo('manage users');
-        $userAdmin->assignRole($adminRole);
-
         $userRole = Role::create(['name' => 'user']);
-        $userRole->givePermissionTo('view dashboard');
+
+        $superAdminRole->givePermissionTo(Permission::all());
+        $adminRole->givePermissionTo([
+            'dashboard.view',
+            'user.create',
+            'user.update',
+            'user.list',
+            'user.view',
+            'user.reset-password',
+            'user.delete',
+        ]);
+        $userRole->givePermissionTo([
+            'dashboard.view',
+            'user.reset-password',
+        ]);
+
+
+        $userSuperAdmin->assignRole($superAdminRole);
+        $userAdmin->assignRole($adminRole);
         $user->assignRole($userRole);
     }
 }
