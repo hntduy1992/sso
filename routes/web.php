@@ -16,7 +16,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/{user}/reset-password', [UserController::class, 'reset-password'])->name('user.reset-password');
         Route::put('/{id}/update', [UserController::class, 'update'])->name('user.update');
         Route::delete('/{id}/delete', [UserController::class, 'destroy'])->name('user.destroy');
-        Route::get('/create', [UserController::class, 'create'])->name('user.create');
         Route::post('/create', [UserController::class, 'store'])->name('user.store');
         Route::delete('/deletes', [UserController::class, 'destroys'])->name('user.destroys');
         Route::get('/', [UserController::class, 'index'])->name('user.index');

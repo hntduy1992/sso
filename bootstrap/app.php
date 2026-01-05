@@ -20,5 +20,15 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //exceptions
+        $exceptions->respond(function ($response, Throwable $e, $request) {
+            // Chỉ xử lý khi chạy trên môi trường production và là lỗi Server/Authorization
+            if (in_array($response->getStatusCode(), [403, 404, 500, 503, 419])) {
+                return Inertia::render('Errors', [
+                    'status' => $response->getStatusCode()
+                ])
+                    ->toResponse($request)
+                    ->setStatusCode($response->getStatusCode());
+            }
+            return $response;
+        });
     })->create();

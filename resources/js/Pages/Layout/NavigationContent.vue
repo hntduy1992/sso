@@ -23,22 +23,41 @@ const test = () => {
     )
 }
 
-const testDelete = ()=>{
+const testDelete = () => {
     router.delete('/users/1/delete')
+}
+const testPermission = () => {
+    router.visit('/users')
+}
+const testCreate = () => {
+    router.put('/users/5/update', {
+            id:5,
+            username: 'test admin 2',
+            password: 'a1234567@A',
+            full_name: 'test user hacking',
+            role:1
+        },
+        {
+            onSuccess: (res) => {
+                console.log(res)
+            },
+            onError: (err) => {
+                console.log(err)
+            },
+        }
+    )
 }
 </script>
 
 <template>
     <v-list>
         <v-list-item link @click="router.visit('/dashboard')" prepend-icon="mdi-view-dashboard">Dashboard</v-list-item>
-        <v-list-item v-if="can('manage users')" @click="router.visit('/users')"
+        <v-list-item v-if="can('user.list')" @click="router.visit('/users')"
                      prepend-icon="mdi-account-group">Accounts
         </v-list-item>
-        <v-list-item @click="test"
-        >Test
-            {{ page.props.auth.user.roles }}
+        <v-list-item @click="testPermission">Test view permission
         </v-list-item>
-        <v-list-item @click="testDelete">Test
+        <v-list-item @click="testCreate">Test create permission
         </v-list-item>
     </v-list>
 </template>

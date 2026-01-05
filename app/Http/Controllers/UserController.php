@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\User\CreateUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,16 +17,20 @@ class UserController extends Controller
 {
     use AuthorizesRequests;
 
+    /**
+     * @throws AuthorizationException
+     */
     public function index(Request $request)
     {
+        $this->authorize('user.list');
         // 1. Lấy tham số từ request (Vuetify gửi lên)
         $search = $request->input('search');
         $page = $request->input('page', 1); // Mặc định 10 items/trang
-        $perPage = $request->input('perPage', 10);; // Mặc định 10 items/trang
+        $perPage = $request->input('perPage', 10); // Mặc định 10 items/trang
         // 2. Truy vấn dữ liệu
-        $query = User::query()->with(['roles:id,name'])->when(!$request->user()->hasRole('super-admin'))
+        $query = User::query()->with(['roles:id,name'])->when(!$request->user()->can('user.list.super'))
             ->whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'super-admin');
+                $q->where('name', 'super');
             });
 
         // Tìm kiếm nếu có
@@ -33,7 +39,7 @@ class UserController extends Controller
             $query->orWhere('username', 'like', "%{$search}%");
         }
 
-        $roles = Role::query()->when(!$request->user()->hasRole('super-admin'))->where('name', '!=', 'super-admin')->get(['id', 'name']);
+        $roles = Role::query()->when(!$request->user()->hasRole('super'))->where('name', '!=', 'super')->get(['id', 'name']);
 
         // 3. Phân trang và trả về Inertia
         return Inertia::render('Users/IndexPage', [
@@ -43,12 +49,17 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * @throws AuthorizationException
+     */
     public function store(CreateUserRequest $request)
     {
         $request->validated();
-        if (Role::query()->where('id', $request->input('role'))->first()->name === 'super-admin' && !$request->user()->hasRole('super-admin')) {
+
+        if (Role::query()->where('id', $request->input('role'))->first()->name === 'super' && !$request->user()->can('user.create.super')) {
             return redirect()->back()->with('error', 'Bạn không có quyền thực hiện tác vụ này!');
         }
+
         $newUser = User::create([
             'username' => $request->input('username'),
             'password' => Hash::make($request->input('password')),

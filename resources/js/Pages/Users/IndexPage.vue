@@ -1,9 +1,11 @@
 <script setup>
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import CreateForm from "@/Pages/Users/CreateForm.vue";
 import ConfirmDeleteForm from "@/Pages/Users/ConfirmDeleteForm.vue";
-import {Link, router} from "@inertiajs/vue3";
+import {Link, router, usePage} from "@inertiajs/vue3";
 import UpdateInfo from "@/Pages/Users/UpdateInfo.vue";
+
+const page = usePage()
 
 const props = defineProps({
     users: Object,
@@ -146,7 +148,8 @@ const changePerPage = (e) => {
     <v-card>
         <v-card-title class="bg-primary">
             User manager
-            <v-btn prepend-icon="mdi-plus" color="success" class="float-end " @click="createDrawer = true">Add Account
+            <v-btn prepend-icon="mdi-plus" color="success"
+                   class="float-end " @click="createDrawer = true">Add Account
             </v-btn>
             <v-badge v-if="selected.length>0" class="mr-2 float-end" :content="selected.length">
                 <v-btn prepend-icon="mdi-delete" color="error" @click="deleteMultiDialog=true">Delete</v-btn>

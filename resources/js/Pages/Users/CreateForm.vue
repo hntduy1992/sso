@@ -18,7 +18,7 @@ const roles = page.props.roles
 const submit = (close) => {
     isLoading.value = true
     userForm.post('/users/create', {
-        only: ['users,filters', 'roles','flash'],
+        only: ['users,filters', 'roles', 'flash'],
         onSuccess: (res) => {
             emits('OnSuccess', {closeForm: close})
         },
@@ -74,7 +74,7 @@ const submit = (close) => {
                       prepend-icon="mdi-security"
                       :error-messages="userForm.errors?.role"
             ></v-select>
-    Q           <v-toolbar color="transparent">
+            <v-toolbar color="transparent">
                 <v-spacer/>
                 <v-btn color="success" variant="outlined" class="mr-2" @click="submit(true)">Save and Close</v-btn>
                 <v-btn color="primary" variant="elevated" @click="submit(false)">Save</v-btn>
