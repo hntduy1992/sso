@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -18,7 +19,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}/delete', [UserController::class, 'destroy'])->name('user.destroy');
         Route::post('/create', [UserController::class, 'store'])->name('user.store');
         Route::delete('/deletes', [UserController::class, 'destroys'])->name('user.destroys');
-        Route::get('/', [UserController::class, 'index'])->name('user.index');
+        Route::get('/', [UserController::class, 'index'])->name('user.index')->can('user.list');
+    });
+
+    Route::prefix('departments')->group(function (){
+        Route::post('/create', [DepartmentController::class, 'store'])->name('department.store')->can('department.create');
+        Route::get('/', [DepartmentController::class, 'index'])->name('department.index')->can('department.list');
     });
     Route::get('/', function () {
         return redirect()->route('dashboard.index');

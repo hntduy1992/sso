@@ -1,16 +1,16 @@
 <script setup>
 import {computed, ref} from "vue";
-import CreateForm from "@/Pages/Users/CreateForm.vue";
-import ConfirmDeleteForm from "@/Pages/Users/ConfirmDeleteForm.vue";
+
 import {Link, router, usePage} from "@inertiajs/vue3";
-import UpdateInfo from "@/Pages/Users/UpdateInfo.vue";
+import CreateForm from "@/Pages/Departments/CreateForm.vue";
 
 const page = usePage()
 
 const props = defineProps({
-    users: Object,
+    departments: Object,
     filters: Object
 })
+
 
 
 const selected = ref([])
@@ -26,28 +26,19 @@ const headers = ref([
         }
     },
     {
-        title: 'Full name',
+        title: 'Name',
         align: 'start',
-        key: 'full_name',
+        key: 'name',
         sortable: false,
         headerProps: {
             class: 'font-weight-bold text-uppercase'
         }
     },
     {
-        title: 'Username',
+        title: 'Status',
         align: 'center',
-        key: 'username',
+        key: 'is_active',
         sortable: false,
-        headerProps: {
-            class: 'font-weight-bold text-uppercase'
-        }
-    },
-    {
-        title: 'Roles',
-        align: 'center',
-        sortable: false,
-        key: 'roles',
         headerProps: {
             class: 'font-weight-bold text-uppercase'
         }
@@ -86,19 +77,19 @@ const deleteItem = (item) => {
 const deleteMultiDialog = ref(false)
 const deleteDialog = ref(false)
 const deleteItemHandler = () => {
-    router.delete('/users/' + Item.value.id + '/delete', {
-        only: ['users', 'filters', 'flash'],
+    router.delete('/departments/' + Item.value.id + '/delete', {
+        only: ['departments', 'filters', 'flash'],
         onSuccess: (res) => {
             deleteDialog.value = false
         }
     })
 }
 const deleteItemsHandler = () => {
-    router.delete('/users/deletes', {
+    router.delete('/departments/deletes', {
         data: {
             ids: selected.value?.map(x => x.id)
         },
-        only: ['users', 'filters', 'flash'],
+        only: ['departments', 'filters', 'flash'],
         onSuccess: (res) => {
             selected.value = []
             deleteMultiDialog.value = false
@@ -114,8 +105,8 @@ const updateSubmit = () => {
 }
 const isLoading = ref(false)
 const gotoPage = (e) => {
-    router.visit('/users', {
-        only: ['users', 'filters'],
+    router.visit('/departments', {
+        only: ['departments', 'filters'],
         data: {
             search: filters.value.search,
             perPage: filters.value.perPage,
@@ -124,8 +115,8 @@ const gotoPage = (e) => {
     })
 }
 const goSearch = () => {
-    router.visit('/users', {
-        only: ['users', 'filters'],
+    router.visit('/departments', {
+        only: ['departments', 'filters'],
         data: {
             search: filters.value.search,
             perPage: filters.value.perPage,
@@ -133,8 +124,8 @@ const goSearch = () => {
     })
 }
 const changePerPage = (e) => {
-    router.visit('/users', {
-        only: ['users', 'filters'],
+    router.visit('/departments', {
+        only: ['departments', 'filters'],
         data: {
             search: filters.value.search,
             perPage: e,
@@ -147,9 +138,9 @@ const changePerPage = (e) => {
 <template>
     <v-card>
         <v-card-title class="bg-primary">
-            Accounts manager
+            Departments manager
             <v-btn prepend-icon="mdi-plus" color="success"
-                   class="float-end " @click="createDrawer = true">Add Account
+                   class="float-end " @click="createDrawer = true">Add Departments
             </v-btn>
             <v-badge v-if="selected.length>0" class="mr-2 float-end" :content="selected.length">
                 <v-btn prepend-icon="mdi-delete" color="error" @click="deleteMultiDialog=true">Delete</v-btn>
@@ -159,8 +150,8 @@ const changePerPage = (e) => {
         <v-card-text>
             <v-data-table-server
                 :headers="headers"
-                :items="props.users.data"
-                :items-length="props.users.total"
+                :items="props.departments.data"
+                :items-length="props.departments.total"
                 :page="filters.page"
                 :items-per-page="filters.perPage"
                 @update:page="gotoPage"
@@ -168,7 +159,7 @@ const changePerPage = (e) => {
                 show-select
                 v-model="selected"
                 return-object
-                :hide-default-footer="props.users.total<10"
+                :hide-default-footer="props.departments.total<10"
             >
                 <template v-slot:top>
                     <v-text-field v-model="filters.search"
@@ -190,26 +181,13 @@ const changePerPage = (e) => {
                 </template>
 
                 <template v-slot:item.index="{item,index}">{{ index + 1 }}</template>
-                <template v-slot:item.full_name="{ item }">
-                    <div class="d-flex align-center py-2">
-                        <v-avatar v-if="item.avatar" :image="item.avatar" color="primary" size="32" class="mr-3">
-                        </v-avatar>
-                        <v-avatar v-else color="primary" size="32" class="mr-3">
-                            <span class="text-caption">{{ item.full_name.charAt(0) }}</span>
-                        </v-avatar>
-                        <div class="font-weight-bold">{{ item.full_name }}</div>
-                    </div>
-                </template>
 
-                <template v-slot:item.roles="{ item }">
+                <template v-slot:item.is_active="{ item }">
                     <v-chip
-                        v-for="role in item.roles"
-                        :key="role.id"
-                        size="x-small"
-                        class="mr-1"
-                        label
+
+                        :color="item.is_active?'green':'red'"
                     >
-                        {{ role.name }}
+                        {{ item.is_active ? 'Activated' : 'In active' }}
                     </v-chip>
                 </template>
 
@@ -239,7 +217,7 @@ const changePerPage = (e) => {
 
                                 <v-list-item
                                     rounded="lg"
-                                    title="Reset password"
+                                    title="View Users"
                                     link
                                 >
                                     <template v-slot:prepend>
@@ -282,15 +260,15 @@ const changePerPage = (e) => {
         width="500"
         scrim="black"
     >
-        <UpdateInfo v-if="updateDrawer" :User="Item" @OnSuccess="updateSubmit"></UpdateInfo>
+        <!--        <UpdateInfo v-if="updateDrawer" :User="Item" @OnSuccess="updateSubmit"></UpdateInfo>-->
     </v-navigation-drawer>
     <v-dialog v-if="deleteDialog" v-model="deleteDialog" max-width="340">
-        <ConfirmDeleteForm :user="Item" @OnCancel="deleteDialog=false"
-                           @OnAccept="deleteItemHandler"></ConfirmDeleteForm>
+        <!--        <ConfirmDeleteForm :user="Item" @OnCancel="deleteDialog=false"-->
+        <!--                           @OnAccept="deleteItemHandler"></ConfirmDeleteForm>-->
     </v-dialog>
     <v-dialog v-if="deleteMultiDialog" v-model="deleteMultiDialog" max-width="340">
-        <ConfirmDeleteForm :users="selected" @OnCancel="deleteMultiDialog=false"
-                           @OnAccept="deleteItemsHandler"></ConfirmDeleteForm>
+        <!--        <ConfirmDeleteForm :users="selected" @OnCancel="deleteMultiDialog=false"-->
+        <!--                           @OnAccept="deleteItemsHandler"></ConfirmDeleteForm>-->
     </v-dialog>
 </template>
 

@@ -1,0 +1,7 @@
+permission
+user
+	create-user, create-super-user
+	update-self, update-user, update-super-user
+	delete-user, delete-super-user
+	view-user, view-super-user
+	

@@ -18,8 +18,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
         $userSuperAdmin = User::create([
             'full_name' => 'Super Administrator',
             'username' => 'super_admin',
@@ -46,13 +44,24 @@ class DatabaseSeeder extends Seeder
         Permission::create(['name' => 'user.view.super']);
         Permission::create(['name' => 'user.delete.super']);
         Permission::create(['name' => 'user.reset-password.super']);
-        //admin
+
+        Permission::create(['name' => 'app.setting.update']);
+
+
+        //user
         Permission::create(['name' => 'user.create']);
         Permission::create(['name' => 'user.update']);
         Permission::create(['name' => 'user.reset-password']);
         Permission::create(['name' => 'user.list']);
         Permission::create(['name' => 'user.view']);
         Permission::create(['name' => 'user.delete']);
+
+        //department
+        Permission::create(['name' => 'department.list']);
+        Permission::create(['name' => 'department.view.user']);
+        Permission::create(['name' => 'department.create']);
+        Permission::create(['name' => 'department.update']);
+        Permission::create(['name' => 'department.delete']);
 
         $superAdminRole = Role::create(['name' => 'super']);
         $adminRole = Role::create(['name' => 'admin']);
@@ -67,9 +76,15 @@ class DatabaseSeeder extends Seeder
             'user.view',
             'user.reset-password',
             'user.delete',
+            'department.list',
+            'department.view.user',
+            'department.create',
+            'department.update',
+            'department.delete',
         ]);
         $userRole->givePermissionTo([
             'dashboard.view',
+            'department.view.user',
             'user.reset-password',
         ]);
 
@@ -77,5 +92,6 @@ class DatabaseSeeder extends Seeder
         $userSuperAdmin->assignRole($superAdminRole);
         $userAdmin->assignRole($adminRole);
         $user->assignRole($userRole);
+
     }
 }

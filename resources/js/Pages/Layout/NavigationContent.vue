@@ -31,11 +31,11 @@ const testPermission = () => {
 }
 const testCreate = () => {
     router.put('/users/5/update', {
-            id:5,
+            id: 5,
             username: 'test admin 2',
             password: 'a1234567@A',
             full_name: 'test user hacking',
-            role:1
+            role: 1
         },
         {
             onSuccess: (res) => {
@@ -51,9 +51,15 @@ const testCreate = () => {
 
 <template>
     <v-list>
-        <v-list-item link @click="router.visit('/dashboard')" prepend-icon="mdi-view-dashboard">Dashboard</v-list-item>
+        <v-list-item @click="router.visit('/dashboard')" prepend-icon="mdi-view-dashboard">Dashboard</v-list-item>
         <v-list-item v-if="can('user.list')" @click="router.visit('/users')"
                      prepend-icon="mdi-account-group">Accounts
+        </v-list-item>
+        <v-list-item v-if="can('department.list')" @click="router.visit('/departments')"
+                     prepend-icon="mdi-account-group">Departments
+        </v-list-item>
+        <v-list-item @click="router.visit('/departments')"
+                     prepend-icon="mdi-account-group">Departments test
         </v-list-item>
         <v-list-item @click="testPermission">Test view permission
         </v-list-item>
