@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Application\User\UseCases;
+
+use App\Domain\User\DTOs\LoginDTO;
+use App\Domain\User\Exceptions\AccountSuspendedException;
+use App\Domain\User\Exceptions\InvalidCredentialsException;
+use App\Domain\User\Repositories\UserRepositoryInterface;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Session;
+
+class AuthenticateUserUseCase
+{
+    public function __construct(
+        private readonly UserRepositoryInterface $userRepository
+    ) {}
+
+    /**
+     * @throws InvalidCredentialsException
+     * @throws AccountSuspendedException
+     */
+    public function execute(LoginDTO $dto): User
+    {
+        $user = $this->userRepository->findByEmail($dto->email);
+
+        if (! $user || ! Hash::check($dto->password, $user->password)) {
+            throw new InvalidCredentialsException;
+        }
+
+        if ($user->isSuspended()) {
+            throw new AccountSuspendedException;
+        }
+
+        if (! $this->userRepository->attempt($dto->email, $dto->password, $dto->remember)) {
+            throw new InvalidCredentialsException;
+        }
+
+        // Regenerate session to prevent session fixation attacks
+        Session::regenerate();
+
+        return $user;
+    }
+}
