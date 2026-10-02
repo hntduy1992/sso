@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
+import AppLayout from '@/Layouts/AppLayout.vue';
 import type { PageProps, User } from '@/types';
 
 interface PaginatedUsers {
@@ -61,91 +62,20 @@ const toggleUserStatus = (user: User) => {
     );
 };
 
-const handleLogout = () => {
-    router.post('/logout');
+const forceLogoutUser = (user: User) => {
+    if (!confirm(`Bạn có chắc chắn muốn cưỡng chế đăng xuất "${user.name}" khỏi toàn bộ phiên và ứng dụng vệ tinh?`)) {
+        return;
+    }
+
+    router.post(`/admin/users/${user.id}/force-logout`, {}, {
+        preserveScroll: true,
+    });
 };
 </script>
 
 <template>
-    <Head title="SSO Admin Dashboard - Quản trị Danh tính" />
-
-    <div class="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
-        <!-- Top Navbar -->
-        <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl sticky top-0 z-30">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <!-- Brand Logo -->
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 p-[1px] shadow-md shadow-indigo-500/20">
-                        <div class="w-full h-full bg-slate-950 rounded-xl flex items-center justify-center">
-                            <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div>
-                        <span class="font-bold text-base bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                            SSO Identity Hub
-                        </span>
-                        <span class="hidden sm:inline-block ml-2 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                            Central Auth
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Current User Profile & Logout -->
-                <div class="flex items-center gap-4">
-                    <div v-if="page.props.auth.user" class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm text-white shadow">
-                            {{ page.props.auth.user.name.charAt(0).toUpperCase() }}
-                        </div>
-                        <div class="hidden md:block text-right">
-                            <div class="text-sm font-medium text-slate-200">
-                                {{ page.props.auth.user.name }}
-                            </div>
-                            <div class="text-xs text-slate-400 flex items-center justify-end gap-1.5">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                                <span>{{ page.props.auth.user.email }}</span>
-                                <span class="capitalize px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-indigo-300 border border-slate-700">
-                                    {{ page.props.auth.user.role }}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        @click="handleLogout"
-                        class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-rose-500/10 hover:text-rose-400 border border-slate-700 hover:border-rose-500/30 text-xs font-medium text-slate-300 transition duration-150 cursor-pointer"
-                    >
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        <span class="hidden sm:inline">Đăng xuất</span>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Main Content Area -->
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-            <!-- Flash Message Banner -->
-            <div v-if="page.props.flash?.success" class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm flex items-center justify-between shadow-lg shadow-emerald-950/20">
-                <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span>{{ page.props.flash.success }}</span>
-                </div>
-            </div>
-
-            <div v-if="page.props.flash?.error" class="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-center justify-between shadow-lg shadow-rose-950/20">
-                <div class="flex items-center gap-3">
-                    <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span>{{ page.props.flash.error }}</span>
-                </div>
-            </div>
+    <AppLayout title="Quản trị Danh tính">
+        <div class="space-y-6">
 
             <!-- Page Title Section -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -324,22 +254,32 @@ const handleLogout = () => {
 
                                 <!-- Actions -->
                                 <td class="px-6 py-4 text-right">
-                                    <button
-                                        v-if="page.props.auth.user?.id !== user.id"
-                                        type="button"
-                                        :disabled="updatingUserId === user.id"
-                                        @click="toggleUserStatus(user)"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                        :class="user.status === 'active'
-                                            ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                            : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'"
-                                    >
-                                        <svg v-if="updatingUserId === user.id" class="animate-spin w-3.5 h-3.5 text-current" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                        </svg>
-                                        <span v-else>{{ user.status === 'active' ? '🔒 Khóa' : '🔓 Mở khóa' }}</span>
-                                    </button>
+                                    <div v-if="page.props.auth.user?.id !== user.id" class="flex items-center justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            @click="forceLogoutUser(user)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition cursor-pointer"
+                                            title="Cưỡng chế đăng xuất khỏi tất cả phiên và ứng dụng con"
+                                        >
+                                            ⚡ Force Logout
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            :disabled="updatingUserId === user.id"
+                                            @click="toggleUserStatus(user)"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                            :class="user.status === 'active'
+                                                ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'"
+                                        >
+                                            <svg v-if="updatingUserId === user.id" class="animate-spin w-3.5 h-3.5 text-current" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                            </svg>
+                                            <span v-else>{{ user.status === 'active' ? '🔒 Khóa' : '🔓 Mở khóa' }}</span>
+                                        </button>
+                                    </div>
                                     <span v-else class="text-xs text-slate-500 italic">
                                         (Tài khoản hiện tại)
                                     </span>
@@ -396,6 +336,6 @@ const handleLogout = () => {
                     </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </AppLayout>
 </template>

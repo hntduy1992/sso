@@ -50,6 +50,14 @@ class AuthController extends Controller
             ]);
         }
 
+        // MFA gate: if 2FA is confirmed, log out again and require TOTP challenge
+        if ($user->hasMfaEnabled()) {
+            Auth::logout();
+            $request->session()->put('mfa_pending_user_id', $user->id);
+
+            return redirect()->route('mfa.challenge');
+        }
+
         $redirectUrl = $dto->redirect;
         if ($redirectUrl && filter_var($redirectUrl, FILTER_VALIDATE_URL)) {
             return redirect()->away($redirectUrl);

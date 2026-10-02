@@ -14,7 +14,8 @@ class AuthTest extends TestCase
     {
         $response = $this->get('/login');
 
-        $response->assertStatus(200);
+        $response->assertStatus(200)
+            ->assertInertia(fn ($page) => $page->component('Auth/Login'));
     }
 
     public function test_user_can_authenticate_with_valid_credentials(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\User\UseCases;
 
+use App\Application\User\Services\SessionTracker;
 use App\Domain\User\DTOs\LoginDTO;
 use App\Domain\User\Exceptions\AccountSuspendedException;
 use App\Domain\User\Exceptions\InvalidCredentialsException;
@@ -15,7 +16,8 @@ use Illuminate\Support\Facades\Session;
 class AuthenticateUserUseCase
 {
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly SessionTracker $sessionTracker,
     ) {}
 
     /**
@@ -40,6 +42,10 @@ class AuthenticateUserUseCase
 
         // Regenerate session to prevent session fixation attacks
         Session::regenerate();
+
+        if (! $user->hasMfaEnabled()) {
+            $this->sessionTracker->track($user);
+        }
 
         return $user;
     }
