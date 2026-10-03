@@ -6,6 +6,7 @@ namespace App\Presentation\Http\Controllers\Admin;
 
 use App\Application\User\UseCases\AdminResetPasswordUseCase;
 use App\Application\User\UseCases\AssignUserPositionUseCase;
+use App\Application\User\UseCases\CreateUserUseCase;
 use App\Application\User\UseCases\TerminateUserPositionUseCase;
 use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\User\Exceptions\PositionConflictException;
@@ -21,6 +22,7 @@ use App\Models\UserProfile;
 use App\Models\UserSession;
 use App\Presentation\Http\Requests\Admin\AdminResetPasswordRequest;
 use App\Presentation\Http\Requests\Admin\AssignPositionRequest;
+use App\Presentation\Http\Requests\Admin\StoreUserRequest;
 use App\Presentation\Http\Requests\Admin\UpdateUserRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +32,22 @@ use Laravel\Passport\Passport;
 
 class UserManagementController extends Controller
 {
+    /**
+     * Create a single user account (optionally attached to a specialized team).
+     */
+    public function store(StoreUserRequest $request, CreateUserUseCase $useCase): RedirectResponse
+    {
+        try {
+            $user = $useCase->execute($request->toDTO(), $request->user());
+
+            return redirect()->back()
+                ->with('success', "Đã tạo tài khoản {$user->name} thành công.");
+        } catch (PositionConflictException|UserNotFoundException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
     /**
      * Display detailed user HRM profile, current positions, and assignment history.
      */

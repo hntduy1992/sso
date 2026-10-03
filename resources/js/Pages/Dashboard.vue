@@ -25,9 +25,16 @@ interface Stats {
     admins: number;
 }
 
+interface DepartmentOption {
+    id: number;
+    name: string;
+    code: string;
+}
+
 const props = defineProps<{
     users: PaginatedUsers;
     stats: Stats;
+    departments: DepartmentOption[];
     filters: {
         search?: string;
         status?: string;
@@ -178,6 +185,43 @@ const submitEditForm = () => {
         onSuccess: () => closeEditModal(),
     });
 };
+
+// Create User Modal
+const isCreateModalOpen = ref(false);
+
+const createForm = useForm({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user' as 'admin' | 'user',
+    status: 'active' as 'active' | 'suspended',
+    department_id: '' as number | '',
+    full_name: '',
+    phone_number: '',
+    contact_email: '',
+    gender: '' as '' | 'male' | 'female' | 'other',
+    date_of_birth: '',
+    address: '',
+});
+
+const openCreateModal = () => {
+    createForm.reset();
+    createForm.clearErrors();
+    isCreateModalOpen.value = true;
+};
+
+const closeCreateModal = () => {
+    isCreateModalOpen.value = false;
+    createForm.reset();
+    createForm.clearErrors();
+};
+
+const submitCreateForm = () => {
+    createForm.post('/admin/users', {
+        preserveScroll: true,
+        onSuccess: () => closeCreateModal(),
+    });
+};
 </script>
 
 <template>
@@ -200,6 +244,21 @@ const submitEditForm = () => {
                 </div>
 
                 <div class="flex items-center gap-3">
+                    <button
+                        id="btn-create-user"
+                        type="button"
+                        @click="openCreateModal"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition"
+                    >
+                        + Thêm người dùng
+                    </button>
+                    <Link
+                        id="link-import-users"
+                        href="/admin/users/import"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition"
+                    >
+                        Import Excel
+                    </Link>
                     <Link
                         href="/admin/departments"
                         class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
@@ -601,6 +660,119 @@ const submitEditForm = () => {
                         </Link>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Create User Modal -->
+        <div v-if="isCreateModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Thêm Người Dùng Mới</h3>
+                        <p class="text-xs text-slate-400">Tạo tài khoản đăng nhập và hồ sơ nhân sự</p>
+                    </div>
+                    <button type="button" @click="closeCreateModal" class="text-slate-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form @submit.prevent="submitCreateForm" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-name" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Tên đăng nhập *</label>
+                            <input id="create-name" v-model="createForm.name" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                            <div v-if="createForm.errors.name" class="text-xs text-rose-400 mt-1">{{ createForm.errors.name }}</div>
+                        </div>
+                        <div>
+                            <label for="create-email" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Email đăng nhập *</label>
+                            <input id="create-email" v-model="createForm.email" type="email" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                            <div v-if="createForm.errors.email" class="text-xs text-rose-400 mt-1">{{ createForm.errors.email }}</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-password" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Mật khẩu *</label>
+                            <input id="create-password" v-model="createForm.password" type="password" autocomplete="new-password" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                            <div v-if="createForm.errors.password" class="text-xs text-rose-400 mt-1">{{ createForm.errors.password }}</div>
+                        </div>
+                        <div>
+                            <label for="create-department" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Đơn vị (tuỳ chọn)</label>
+                            <select id="create-department" v-model="createForm.department_id" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="">-- Không gán đơn vị --</option>
+                                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }} ({{ dept.code }})</option>
+                            </select>
+                            <div v-if="createForm.errors.department_id" class="text-xs text-rose-400 mt-1">{{ createForm.errors.department_id }}</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-role" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Vai trò hệ thống *</label>
+                            <select id="create-role" v-model="createForm.role" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="user">Người dùng (User)</option>
+                                <option value="admin">Quản trị viên (Admin)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="create-status" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Trạng thái *</label>
+                            <select id="create-status" v-model="createForm.status" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="active">Đang hoạt động (Active)</option>
+                                <option value="suspended">Tạm khóa (Suspended)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800 space-y-3">
+                        <div class="text-xs font-bold uppercase tracking-wider text-indigo-400">Hồ Sơ Nhân Sự (tuỳ chọn)</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="create-full-name" class="block text-xs text-slate-400 mb-1">Họ và tên đầy đủ</label>
+                                <input id="create-full-name" v-model="createForm.full_name" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <div v-if="createForm.errors.full_name" class="text-xs text-rose-400 mt-1">{{ createForm.errors.full_name }}</div>
+                            </div>
+                            <div>
+                                <label for="create-phone" class="block text-xs text-slate-400 mb-1">Số điện thoại</label>
+                                <input id="create-phone" v-model="createForm.phone_number" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <div v-if="createForm.errors.phone_number" class="text-xs text-rose-400 mt-1">{{ createForm.errors.phone_number }}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label for="create-gender" class="block text-xs text-slate-400 mb-1">Giới tính</label>
+                                <select id="create-gender" v-model="createForm.gender" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                    <option value="">-- Chọn --</option>
+                                    <option value="male">Nam</option>
+                                    <option value="female">Nữ</option>
+                                    <option value="other">Khác</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="create-dob" class="block text-xs text-slate-400 mb-1">Ngày sinh</label>
+                                <input id="create-dob" v-model="createForm.date_of_birth" type="date" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <div v-if="createForm.errors.date_of_birth" class="text-xs text-rose-400 mt-1">{{ createForm.errors.date_of_birth }}</div>
+                            </div>
+                            <div>
+                                <label for="create-contact-email" class="block text-xs text-slate-400 mb-1">Email phụ liên hệ</label>
+                                <input id="create-contact-email" v-model="createForm.contact_email" type="email" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <div v-if="createForm.errors.contact_email" class="text-xs text-rose-400 mt-1">{{ createForm.errors.contact_email }}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="create-address" class="block text-xs text-slate-400 mb-1">Địa chỉ thường trú</label>
+                            <input id="create-address" v-model="createForm.address" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+                        <button type="button" @click="closeCreateModal" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white">Hủy bỏ</button>
+                        <button type="submit" :disabled="createForm.processing" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-50">
+                            Tạo tài khoản
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 

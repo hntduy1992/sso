@@ -83,6 +83,16 @@ const assignForm = useForm({
     notes: '',
 });
 
+// Active primary position of this user
+const activePrimaryPosition = computed(() => {
+    return props.activePositions.find(p => p.is_primary && p.is_active);
+});
+
+// Helper to check if user already has an active position in a department
+const getActivePositionInDept = (deptId: number): PositionItem | undefined => {
+    return props.activePositions.find(p => p.department_id === deptId && p.is_active);
+};
+
 // Filter position types based on selected department type
 const availablePositionTypes = computed(() => {
     if (!assignForm.department_id) {
@@ -108,7 +118,7 @@ const openAssignModal = () => {
     assignForm.reset();
     assignForm.clearErrors();
     assignForm.started_at = new Date().toISOString().split('T')[0];
-    assignForm.is_primary = props.activePositions.length === 0; // default to primary if user has no positions yet
+    assignForm.is_primary = !activePrimaryPosition.value;
     isAssignModalOpen.value = true;
 };
 
@@ -430,9 +440,19 @@ const submitResetPassword = () => {
 
                                 <div class="p-4 rounded-xl bg-slate-950/50 border border-slate-800/80 text-sm space-y-1.5">
                                     <div class="flex items-center justify-between">
-                                        <span class="font-bold text-slate-200">
-                                            {{ pos.position_type_name }} &mdash; {{ pos.department_name }}
-                                        </span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-slate-200">
+                                                {{ pos.position_type_name }} &mdash; {{ pos.department_name }}
+                                            </span>
+                                            <span
+                                                :class="[
+                                                    'text-[10px] px-2 py-0.5 rounded font-semibold uppercase',
+                                                    pos.is_primary ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'
+                                                ]"
+                                            >
+                                                {{ pos.is_primary ? 'Chính' : 'Kiêm nhiệm' }}
+                                            </span>
+                                        </div>
                                         <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400">
                                             Đã kết thúc
                                         </span>
@@ -484,10 +504,14 @@ const submitResetPassword = () => {
                                 v-for="dept in departments"
                                 :key="dept.id"
                                 :value="dept.id"
+                                :disabled="!!getActivePositionInDept(dept.id)"
                             >
-                                {{ dept.name }} ({{ dept.type === 'management_board' ? 'Ban Giám đốc' : 'Tổ chuyên môn' }})
+                                {{ dept.name }} ({{ dept.type === 'management_board' ? 'Ban Giám đốc' : 'Tổ chuyên môn' }}){{ getActivePositionInDept(dept.id) ? ` - [Đang giữ: ${getActivePositionInDept(dept.id)?.position_type_name}]` : '' }}
                             </option>
                         </select>
+                        <p v-if="assignForm.department_id && getActivePositionInDept(Number(assignForm.department_id))" class="text-xs text-rose-400 mt-1.5">
+                            Nhân sự hiện đang giữ chức vụ <strong>{{ getActivePositionInDept(Number(assignForm.department_id))?.position_type_name }}</strong> tại đơn vị này. Mỗi đơn vị người dùng chỉ được đảm nhiệm 1 chức vụ.
+                        </p>
                         <div v-if="assignForm.errors.department_id" class="text-xs text-rose-400 mt-1">{{ assignForm.errors.department_id }}</div>
                     </div>
 
@@ -498,7 +522,7 @@ const submitResetPassword = () => {
                         </label>
                         <select
                             v-model="assignForm.position_type_id"
-                            :disabled="!assignForm.department_id"
+                            :disabled="!assignForm.department_id || !!getActivePositionInDept(Number(assignForm.department_id))"
                             class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                         >
                             <option value="" disabled>-- Chọn chức danh --</option>
@@ -526,18 +550,28 @@ const submitResetPassword = () => {
                         <div v-if="assignForm.errors.started_at" class="text-xs text-rose-400 mt-1">{{ assignForm.errors.started_at }}</div>
                     </div>
 
-                    <!-- Is Primary Checkbox -->
-                    <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-1.5">
-                        <label class="flex items-center gap-2.5 cursor-pointer">
-                            <input
-                                v-model="assignForm.is_primary"
-                                type="checkbox"
-                                class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700 focus:ring-indigo-500"
-                            />
-                            <span class="text-sm font-semibold text-slate-200">Đặt làm chức vụ chính</span>
-                        </label>
-                        <p class="text-xs text-slate-400 pl-6 leading-relaxed">
-                            Mỗi người chỉ có 1 chức vụ chính (BR-03). Nếu nhân sự này đang có chức vụ chính khác, chức vụ đó sẽ tự động chuyển thành chức vụ kiêm nhiệm.
+                    <!-- Position Nature (Chính vs Kiêm nhiệm) -->
+                    <div v-if="activePrimaryPosition" class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-1">
+                        <div class="flex items-center gap-2 text-amber-300 font-semibold text-sm">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Kiêm nhiệm
+                            </span>
+                            <span>Tính chất: Chức vụ kiêm nhiệm</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Nhân sự hiện đang giữ chức vụ chính là <strong class="text-amber-200">{{ activePrimaryPosition.position_type_name }}</strong> tại <strong class="text-amber-200">{{ activePrimaryPosition.department_name }}</strong>. Chức vụ mới bổ nhiệm tại đơn vị này sẽ là chức vụ kiêm nhiệm.
+                        </p>
+                    </div>
+
+                    <div v-else class="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 space-y-1">
+                        <div class="flex items-center gap-2 text-indigo-300 font-semibold text-sm">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-bold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                Chức vụ chính
+                            </span>
+                            <span>Tính chất: Chức vụ chính</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            Nhân sự chưa có chức vụ chính nào đang đương nhiệm. Chức vụ mới được bổ nhiệm này sẽ là chức vụ chính.
                         </p>
                     </div>
 
@@ -564,7 +598,7 @@ const submitResetPassword = () => {
                         </button>
                         <button
                             type="submit"
-                            :disabled="assignForm.processing"
+                            :disabled="assignForm.processing || (!!assignForm.department_id && !!getActivePositionInDept(Number(assignForm.department_id)))"
                             class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
                         >
                             Xác nhận bổ nhiệm

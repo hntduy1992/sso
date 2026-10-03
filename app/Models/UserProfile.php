@@ -39,6 +39,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UserProfile extends Model
 {
     /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'date_of_birth' => 'date',
+        ];
+    }
+
+    /**
      * Get the SSO account this profile belongs to.
      *
      * @return BelongsTo<User, $this>

@@ -10,6 +10,7 @@ use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Domain\User\Repositories\UserRepositoryInterface;
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\OAuthRefreshToken;
 use App\Models\OAuthRefreshTokenFamily;
 use App\Models\User;
@@ -44,6 +45,12 @@ class DashboardController extends Controller
         return Inertia::render('Dashboard', [
             'users' => $users,
             'stats' => $stats,
+            'departments' => Department::query()
+                ->where('type', 'specialized_team')
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name', 'code']),
             'filters' => [
                 'search' => $search ?? '',
                 'status' => $status ?? '',

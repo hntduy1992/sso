@@ -4,6 +4,7 @@ use App\Http\Middleware\RequirePkceForPublicClients;
 use App\Presentation\Http\Controllers\Admin\AuditLogController;
 use App\Presentation\Http\Controllers\Admin\DashboardController;
 use App\Presentation\Http\Controllers\Admin\DepartmentController;
+use App\Presentation\Http\Controllers\Admin\UserImportController;
 use App\Presentation\Http\Controllers\Admin\UserManagementController;
 use App\Presentation\Http\Controllers\Auth\AuthController;
 use App\Presentation\Http\Controllers\Auth\MfaChallengeController;
@@ -156,6 +157,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/departments', [DepartmentController::class, 'store'])->name('admin.departments.store');
     Route::put('/admin/departments/{department}', [DepartmentController::class, 'update'])->name('admin.departments.update');
     Route::delete('/admin/departments/{department}', [DepartmentController::class, 'destroy'])->name('admin.departments.destroy');
+
+    // Admin Panel: Create Users (single & bulk import) — must be declared before /admin/users/{id}
+    Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
+    Route::get('/admin/users/import', [UserImportController::class, 'create'])->name('admin.users.import.create');
+    Route::post('/admin/users/import/validate', [UserImportController::class, 'validateRows'])->name('admin.users.import.validate');
+    Route::post('/admin/users/import', [UserImportController::class, 'store'])->name('admin.users.import.store');
 
     // Admin Panel: User HRM Profile & Positions
     Route::get('/admin/users/{id}', [UserManagementController::class, 'show'])->name('admin.users.show');

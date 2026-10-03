@@ -52,17 +52,17 @@ class AssignUserPositionUseCase
             );
         }
 
-        // Prevent duplicate identical active assignment
-        $alreadyAssigned = UserPosition::query()
+        // Enforce: Each user can only hold AT MOST 1 active position per department
+        $existingDeptPosition = UserPosition::query()
+            ->with('positionType')
             ->where('user_id', $user->id)
             ->where('department_id', $department->id)
-            ->where('position_type_id', $positionType->id)
             ->whereNull('ended_at')
-            ->exists();
+            ->first();
 
-        if ($alreadyAssigned) {
+        if ($existingDeptPosition) {
             throw new PositionConflictException(
-                "Nhân sự {$user->name} hiện đang giữ chức danh '{$positionType->name}' tại '{$department->name}'."
+                "Nhân sự {$user->name} hiện đang giữ chức danh '{$existingDeptPosition->positionType?->name}' tại đơn vị '{$department->name}'. Mỗi đơn vị người dùng chỉ được đảm nhiệm 1 chức vụ. Vui lòng kết thúc chức vụ hiện tại trước khi bổ nhiệm chức vụ mới."
             );
         }
 
@@ -84,7 +84,27 @@ class AssignUserPositionUseCase
             }
         }
 
-        $position = $this->userPositionRepository->assignPosition($dto);
+        // Enforce: If user already has an active primary position (e.g. Phó Giám đốc ở Ban Giám đốc),
+        // any newly appointed position MUST be concurrent (kiêm nhiệm, is_primary = false).
+        // If user does not have any active primary position, the new position becomes the primary position.
+        $hasActivePrimary = UserPosition::query()
+            ->where('user_id', $user->id)
+            ->whereNull('ended_at')
+            ->where('is_primary', true)
+            ->exists();
+
+        $effectiveIsPrimary = ! $hasActivePrimary;
+
+        $effectiveDto = new AssignPositionDTO(
+            userId: $dto->userId,
+            departmentId: $dto->departmentId,
+            positionTypeId: $dto->positionTypeId,
+            startedAt: $dto->startedAt,
+            isPrimary: $effectiveIsPrimary,
+            notes: $dto->notes,
+        );
+
+        $position = $this->userPositionRepository->assignPosition($effectiveDto);
 
         $this->auditLogger->log(
             event: 'ADMIN_ASSIGN_POSITION',
@@ -96,7 +116,7 @@ class AssignUserPositionUseCase
                 'department_name' => $department->name,
                 'position_type_id' => $positionType->id,
                 'position_type_name' => $positionType->name,
-                'is_primary' => $dto->isPrimary,
+                'is_primary' => $effectiveIsPrimary,
                 'started_at' => $dto->startedAt,
             ]
         );

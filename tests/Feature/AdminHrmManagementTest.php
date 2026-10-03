@@ -309,14 +309,55 @@ class AdminHrmManagementTest extends TestCase
     }
 
     /**
-     * Business Rule BR-03:
+     * Business Rule:
      * Only 1 active primary position per user.
-     * Assigning a new primary position demotes the user's previous active primary position to secondary.
+     * When a user already has an active primary position (e.g. Phó Giám đốc in Ban Giám đốc),
+     * assigning a position in another unit (e.g. Tổ trưởng Tổ 1) must be concurrent (kiêm nhiệm, is_primary = false).
+     * The original primary position remains primary.
      */
-    public function test_business_rule_br03_assigning_new_primary_position_demotes_old_primary(): void
+    public function test_business_rule_user_with_existing_primary_position_assigned_subsequent_position_as_concurrent(): void
     {
-        // 1. Initial primary position in Team 1
+        // 1. Initial primary position: Phó Giám đốc in Ban Giám đốc
         $pos1 = UserPosition::create([
+            'user_id' => $this->regularUser->id,
+            'department_id' => $this->banGiamDoc->id,
+            'position_type_id' => $this->deputyDirectorPos->id,
+            'started_at' => '2025-01-01',
+            'is_primary' => true,
+        ]);
+
+        // 2. Assign position in Team 1
+        $response = $this->actingAs($this->admin)->post("/admin/users/{$this->regularUser->id}/positions", [
+            'department_id' => $this->team1->id,
+            'position_type_id' => $this->teamLeadPos->id,
+            'started_at' => now()->toDateString(),
+            'notes' => 'Kiêm nhiệm Tổ trưởng Tổ 1',
+        ]);
+
+        $response->assertSessionHas('success');
+
+        // Original primary position MUST remain primary
+        $this->assertTrue((bool) $pos1->fresh()->is_primary);
+
+        // New position in Team 1 MUST be concurrent (kiêm nhiệm, is_primary = false)
+        $newPos = UserPosition::where('user_id', $this->regularUser->id)
+            ->where('department_id', $this->team1->id)
+            ->firstOrFail();
+        $this->assertFalse((bool) $newPos->is_primary);
+
+        // Exactly 1 active primary position across all departments
+        $this->assertEquals(1, UserPosition::where('user_id', $this->regularUser->id)->active()->primary()->count());
+    }
+
+    /**
+     * Business Rule:
+     * Mỗi một đơn vị người dùng chỉ đảm nhiệm 1 chức vụ.
+     * Attempting to assign another position in the same department without ending the previous one is rejected.
+     */
+    public function test_business_rule_user_cannot_have_more_than_one_active_position_in_the_same_department(): void
+    {
+        // 1. Initial position in Team 1: Member
+        UserPosition::create([
             'user_id' => $this->regularUser->id,
             'department_id' => $this->team1->id,
             'position_type_id' => $this->memberPos->id,
@@ -324,23 +365,23 @@ class AdminHrmManagementTest extends TestCase
             'is_primary' => true,
         ]);
 
-        // 2. Assign new primary position in Team 2
+        // 2. Attempt to assign another position (Deputy Team Lead) in the SAME department (Team 1)
         $response = $this->actingAs($this->admin)->post("/admin/users/{$this->regularUser->id}/positions", [
-            'department_id' => $this->team2->id,
+            'department_id' => $this->team1->id,
             'position_type_id' => $this->deputyTeamLeadPos->id,
             'started_at' => now()->toDateString(),
-            'is_primary' => true,
         ]);
 
-        $response->assertSessionHas('success');
+        $response->assertSessionHas('error');
 
-        // pos1 should now have is_primary = false
-        $this->assertFalse((bool) $pos1->fresh()->is_primary);
-
-        // Exactly 1 active primary position
-        $this->assertEquals(1, UserPosition::where('user_id', $this->regularUser->id)->active()->primary()->count());
-        $newPrimary = UserPosition::where('user_id', $this->regularUser->id)->active()->primary()->first();
-        $this->assertEquals($this->team2->id, $newPrimary->department_id);
+        // Verify only 1 active position exists in Team 1
+        $this->assertEquals(
+            1,
+            UserPosition::where('user_id', $this->regularUser->id)
+                ->where('department_id', $this->team1->id)
+                ->whereNull('ended_at')
+                ->count()
+        );
     }
 
     /**

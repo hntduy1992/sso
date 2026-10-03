@@ -124,6 +124,8 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configurePassport(): void
     {
+        // Register custom authorization view for Passport v13
+        Passport::authorizationView('passport.authorize');
         // Use custom token models to inject claims and support revocation families
         Passport::useTokenModel(OAuthAccessToken::class);
         Passport::useRefreshTokenModel(OAuthRefreshToken::class);

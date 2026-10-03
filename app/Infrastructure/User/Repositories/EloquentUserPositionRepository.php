@@ -74,7 +74,8 @@ class EloquentUserPositionRepository implements UserPositionRepositoryInterface
     {
         return UserPosition::with(['department', 'positionType'])
             ->where('user_id', $userId)
-            ->orderByDesc('started_at')
+            ->whereNotNull('ended_at')
+            ->orderByDesc('ended_at')
             ->get();
     }
 

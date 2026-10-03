@@ -44,6 +44,13 @@ const breadcrumbs = computed(() => {
             { label: 'Cơ cấu Tổ chức & HRM', href: '/admin/departments' },
         ];
     }
+    if (comp === 'Admin/Users/Import') {
+        return [
+            { label: 'Hệ thống CSM', href: '/dashboard' },
+            { label: 'Quản lý Người Dùng', href: '/dashboard' },
+            { label: 'Import từ Excel', href: '/admin/users/import' },
+        ];
+    }
     if (comp === 'Admin/Users/Show') {
         return [
             { label: 'Hệ thống CSM', href: '/dashboard' },
