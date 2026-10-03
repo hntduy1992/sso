@@ -1,3 +1,21 @@
+export interface UserPositionSummary {
+    id: number;
+    department_id: number;
+    is_primary: boolean;
+    department?: {
+        id: number;
+        name: string;
+        code: string;
+        type: string;
+    };
+    position_type?: {
+        id: number;
+        name: string;
+        code: string;
+        level: number;
+    };
+}
+
 export interface User {
     id: number;
     name: string;
@@ -6,6 +24,11 @@ export interface User {
     status: 'active' | 'suspended';
     created_at?: string;
     updated_at?: string;
+    active_positions?: UserPositionSummary[];
+    profile?: {
+        full_name?: string | null;
+        avatar_path?: string | null;
+    } | null;
 }
 
 export interface FlashMessages {

@@ -3,6 +3,8 @@
 use App\Http\Middleware\RequirePkceForPublicClients;
 use App\Presentation\Http\Controllers\Admin\AuditLogController;
 use App\Presentation\Http\Controllers\Admin\DashboardController;
+use App\Presentation\Http\Controllers\Admin\DepartmentController;
+use App\Presentation\Http\Controllers\Admin\UserManagementController;
 use App\Presentation\Http\Controllers\Auth\AuthController;
 use App\Presentation\Http\Controllers\Auth\MfaChallengeController;
 use App\Presentation\Http\Controllers\Auth\SocialAuthController;
@@ -17,6 +19,7 @@ use App\Presentation\Http\Controllers\Profile\AuthorizedAppsController;
 use App\Presentation\Http\Controllers\Profile\MfaController;
 use App\Presentation\Http\Controllers\Profile\ProfileController;
 use App\Presentation\Http\Controllers\Profile\SessionManagementController;
+use App\Presentation\Http\Controllers\Profile\SocialConnectionController;
 use Illuminate\Support\Facades\Route;
 
 // -------------------------------------------------------------------------
@@ -108,7 +111,16 @@ Route::middleware('auth')->group(function () {
     // User Portal: Profile & Security
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.avatar');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+    // User Portal: Social Provider Connections (link / unlink when already authenticated)
+    Route::get('/profile/social-connections/{provider}/connect', [SocialConnectionController::class, 'connect'])
+        ->name('profile.social.connect');
+    Route::get('/profile/social-connections/{provider}/callback', [SocialConnectionController::class, 'callback'])
+        ->name('profile.social.callback');
+    Route::delete('/profile/social-connections/{provider}', [SocialConnectionController::class, 'destroy'])
+        ->name('profile.social.destroy');
 
     // User Portal: Two-Factor Authentication (MFA)
     Route::post('/profile/mfa/setup', [MfaController::class, 'setup'])->name('profile.mfa.setup');
@@ -138,4 +150,20 @@ Route::middleware('auth')->group(function () {
 
     // Admin Panel: Audit Logs
     Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
+
+    // Admin Panel: HRM & Departments
+    Route::get('/admin/departments', [DepartmentController::class, 'index'])->name('admin.departments.index');
+    Route::post('/admin/departments', [DepartmentController::class, 'store'])->name('admin.departments.store');
+    Route::put('/admin/departments/{department}', [DepartmentController::class, 'update'])->name('admin.departments.update');
+    Route::delete('/admin/departments/{department}', [DepartmentController::class, 'destroy'])->name('admin.departments.destroy');
+
+    // Admin Panel: User HRM Profile & Positions
+    Route::get('/admin/users/{id}', [UserManagementController::class, 'show'])->name('admin.users.show');
+    Route::put('/admin/users/{id}', [UserManagementController::class, 'update'])->name('admin.users.update');
+    Route::delete('/admin/users/{id}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+    Route::post('/admin/users/{id}/restore', [UserManagementController::class, 'restore'])->name('admin.users.restore');
+    Route::delete('/admin/users/{id}/force', [UserManagementController::class, 'forceDelete'])->name('admin.users.force-delete');
+    Route::post('/admin/users/{id}/positions', [UserManagementController::class, 'assignPosition'])->name('admin.users.positions.assign');
+    Route::delete('/admin/users/{id}/positions/{positionId}', [UserManagementController::class, 'terminatePosition'])->name('admin.users.positions.terminate');
+    Route::post('/admin/users/{id}/reset-password', [UserManagementController::class, 'resetPassword'])->name('admin.users.reset-password');
 });

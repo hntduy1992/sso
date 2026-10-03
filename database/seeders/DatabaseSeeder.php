@@ -60,5 +60,13 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+        // -----------------------------------------------------------------------
+        // HRM Foundation: Position Types & Departments
+        // -----------------------------------------------------------------------
+        $this->call([
+            PositionTypeSeeder::class,
+            DepartmentSeeder::class,
+        ]);
     }
 }

@@ -13,14 +13,19 @@ interface UserRepositoryInterface
 
     public function findByEmail(string $email): ?User;
 
-    public function getAllPaginated(int $perPage = 10, ?string $search = null): LengthAwarePaginator;
+    public function getAllPaginated(
+        int $perPage = 10,
+        ?string $search = null,
+        ?string $status = null,
+        ?string $role = null
+    ): LengthAwarePaginator;
 
     public function updateStatus(int $userId, string $status): bool;
 
     public function attempt(string $email, string $password, bool $remember = false): bool;
 
     /**
-     * @return array{total: int, active: int, suspended: int, admins: int}
+     * @return array{total: int, active: int, suspended: int, trashed: int, admins: int}
      */
     public function getStats(): array;
 }

@@ -21,15 +21,41 @@ class EloquentUserRepository implements UserRepositoryInterface
         return User::where('email', $email)->first();
     }
 
-    public function getAllPaginated(int $perPage = 10, ?string $search = null): LengthAwarePaginator
-    {
-        $query = User::query()->latest();
+    public function getAllPaginated(
+        int $perPage = 10,
+        ?string $search = null,
+        ?string $status = null,
+        ?string $role = null
+    ): LengthAwarePaginator {
+        $query = User::query()
+            ->with([
+                'profile',
+                'activePositions.department',
+                'activePositions.positionType',
+            ])
+            ->latest();
+
+        if ($status === 'trashed') {
+            $query->onlyTrashed();
+        } elseif ($status === 'all') {
+            $query->withTrashed();
+        } elseif ($status !== null && $status !== '') {
+            $query->where('status', $status);
+        }
+
+        if ($role !== null && $role !== '' && $role !== 'all') {
+            $query->where('role', $role);
+        }
 
         if ($search !== null && trim($search) !== '') {
             $term = '%'.trim($search).'%';
             $query->where(function ($q) use ($term) {
                 $q->where('name', 'like', $term)
-                    ->orWhere('email', 'like', $term);
+                    ->orWhere('email', 'like', $term)
+                    ->orWhereHas('profile', function ($pq) use ($term) {
+                        $pq->where('full_name', 'like', $term)
+                            ->orWhere('phone_number', 'like', $term);
+                    });
             });
         }
 
@@ -55,7 +81,7 @@ class EloquentUserRepository implements UserRepositoryInterface
     }
 
     /**
-     * @return array{total: int, active: int, suspended: int, admins: int}
+     * @return array{total: int, active: int, suspended: int, trashed: int, admins: int}
      */
     public function getStats(): array
     {
@@ -63,6 +89,7 @@ class EloquentUserRepository implements UserRepositoryInterface
             'total' => User::count(),
             'active' => User::where('status', 'active')->count(),
             'suspended' => User::where('status', 'suspended')->count(),
+            'trashed' => User::onlyTrashed()->count(),
             'admins' => User::where('role', 'admin')->count(),
         ];
     }

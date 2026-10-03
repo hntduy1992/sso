@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
@@ -29,7 +31,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasRoles, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -113,10 +115,78 @@ class User extends Authenticatable
     /**
      * Get refresh token rotation families owned by this user.
      *
-     * @return HasMany<OAuthRefreshTokenFamily>
+     * @return HasMany<OAuthRefreshTokenFamily, $this>
      */
     public function refreshTokenFamilies(): HasMany
     {
         return $this->hasMany(OAuthRefreshTokenFamily::class);
+    }
+
+    // -----------------------------------------------------------------------
+    // User Profile (HRM)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Get the personal / HR profile for this account.
+     * May be null for newly-created accounts that haven't filled in their profile.
+     *
+     * @return HasOne<UserProfile, $this>
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(UserProfile::class);
+    }
+
+    /**
+     * Get all organizational position assignments (active and historical).
+     *
+     * @return HasMany<UserPosition, $this>
+     */
+    public function positions(): HasMany
+    {
+        return $this->hasMany(UserPosition::class);
+    }
+
+    /**
+     * Get only currently active position assignments.
+     *
+     * @return HasMany<UserPosition, $this>
+     */
+    public function activePositions(): HasMany
+    {
+        return $this->hasMany(UserPosition::class)->whereNull('ended_at');
+    }
+
+    /**
+     * Get the user's primary (non-concurrent) active position.
+     * Returns null if no primary position has been assigned yet.
+     */
+    public function primaryPosition(): ?UserPosition
+    {
+        /** @var UserPosition|null $position */
+        $position = $this->activePositions()->where('is_primary', true)->first();
+
+        return $position;
+    }
+
+    /**
+     * Determine if the user currently holds a Phó Giám đốc position
+     * in the management board (regardless of concurrent roles).
+     */
+    public function isDeputyDirector(): bool
+    {
+        return $this->activePositions()
+            ->whereHas('positionType', fn ($q) => $q->where('code', PositionType::DEPUTY_DIRECTOR))
+            ->exists();
+    }
+
+    /**
+     * Determine if the user currently holds the Giám đốc position.
+     */
+    public function isDirectorRole(): bool
+    {
+        return $this->activePositions()
+            ->whereHas('positionType', fn ($q) => $q->where('code', PositionType::DIRECTOR))
+            ->exists();
     }
 }
