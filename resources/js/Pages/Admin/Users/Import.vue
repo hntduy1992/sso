@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Link, useHttp } from '@inertiajs/vue3';
 import * as XLSX from 'xlsx';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import DateInput from '@/Components/DateInput.vue';
 import {
     IMPORT_FIELDS,
     TEMPLATE_HEADERS,
@@ -422,7 +423,7 @@ const textFields: { field: ImportField; label: string; width: string; type?: str
                                 <th class="px-3 py-2.5 font-semibold w-14 text-center">Kết quả</th>
                                 <th v-for="col in textFields" :key="col.field" class="px-3 py-2.5 font-semibold whitespace-nowrap">{{ col.label }}</th>
                                 <th class="px-3 py-2.5 font-semibold">Giới tính</th>
-                                <th class="px-3 py-2.5 font-semibold">Ngày sinh</th>
+                                <th class="px-3 py-2.5 font-semibold">Ngày sinh (dd/MM/yyyy)</th>
                                 <th class="px-3 py-2.5 font-semibold">Địa chỉ</th>
                                 <th class="px-3 py-2.5 font-semibold w-24 text-right">Thao tác</th>
                             </tr>
@@ -476,14 +477,16 @@ const textFields: { field: ImportField; label: string; width: string; type?: str
                                 </td>
 
                                 <td class="px-2 py-1">
-                                    <input
-                                        v-model="row.date_of_birth"
-                                        type="text"
-                                        placeholder="yyyy-mm-dd"
-                                        :disabled="row.status === 'created' || isRunning"
-                                        :class="['w-28 px-2 py-1 rounded-lg bg-slate-950/70 border text-xs text-white focus:outline-none', cellHasError(row, 'date_of_birth') ? 'border-rose-500/70' : 'border-slate-800']"
-                                        @input="onCellEdit(row)"
-                                    />
+                                    <div class="w-36">
+                                        <DateInput
+                                            v-model="row.date_of_birth"
+                                            size="sm"
+                                            :disabled="row.status === 'created' || isRunning"
+                                            :has-error="cellHasError(row, 'date_of_birth')"
+                                            input-class="bg-slate-950/70"
+                                            @change="onCellEdit(row)"
+                                        />
+                                    </div>
                                 </td>
 
                                 <td class="px-2 py-1">

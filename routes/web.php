@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\RequirePkceForPublicClients;
+use App\Presentation\Http\Controllers\Admin\ApplicationAccessController;
 use App\Presentation\Http\Controllers\Admin\AuditLogController;
 use App\Presentation\Http\Controllers\Admin\DashboardController;
 use App\Presentation\Http\Controllers\Admin\DepartmentController;
@@ -10,6 +11,8 @@ use App\Presentation\Http\Controllers\Auth\AuthController;
 use App\Presentation\Http\Controllers\Auth\MfaChallengeController;
 use App\Presentation\Http\Controllers\Auth\SocialAuthController;
 use App\Presentation\Http\Controllers\Developer\ClientController;
+use App\Presentation\Http\Controllers\OAuth\CustomApproveAuthorizationController;
+use App\Presentation\Http\Controllers\OAuth\CustomDenyAuthorizationController;
 use App\Presentation\Http\Controllers\OAuth\IntrospectionController;
 use App\Presentation\Http\Controllers\OAuth\JwksController;
 use App\Presentation\Http\Controllers\OAuth\OidcDiscoveryController;
@@ -98,6 +101,12 @@ Route::middleware('guest')->group(function () {
 // -------------------------------------------------------------------------
 // OAuth2 Authorization with PKCE enforcement
 // -------------------------------------------------------------------------
+// Custom authorization approval/denial supporting AJAX for sandboxed iframes
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/oauth/authorize', [CustomApproveAuthorizationController::class, 'approve'])->name('passport.authorizations.approve');
+    Route::delete('/oauth/authorize', [CustomDenyAuthorizationController::class, 'deny'])->name('passport.authorizations.deny');
+});
+
 Route::middleware([RequirePkceForPublicClients::class])->group(function () {
     // Passport registers its own route for /oauth/authorize
     // This middleware wraps it to add PKCE enforcement before Passport handles it
@@ -151,6 +160,12 @@ Route::middleware('auth')->group(function () {
 
     // Admin Panel: Audit Logs
     Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
+
+    // Admin Panel: Application Access (who may sign in to each OAuth app)
+    Route::get('/admin/application-access', [ApplicationAccessController::class, 'index'])->name('admin.application-access.index');
+    Route::post('/admin/application-access/{clientId}/users', [ApplicationAccessController::class, 'grantUser'])->name('admin.application-access.grant-user');
+    Route::post('/admin/application-access/{clientId}/departments', [ApplicationAccessController::class, 'grantDepartment'])->name('admin.application-access.grant-department');
+    Route::delete('/admin/application-access/{clientId}/grants/{grantId}', [ApplicationAccessController::class, 'revoke'])->name('admin.application-access.revoke');
 
     // Admin Panel: HRM & Departments
     Route::get('/admin/departments', [DepartmentController::class, 'index'])->name('admin.departments.index');

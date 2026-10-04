@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import DateInput from '@/Components/DateInput.vue';
 import type { PageProps, User } from '@/types';
 
 interface ExtendedUser extends User {
@@ -751,7 +752,7 @@ const submitCreateForm = () => {
                             </div>
                             <div>
                                 <label for="create-dob" class="block text-xs text-slate-400 mb-1">Ngày sinh</label>
-                                <input id="create-dob" v-model="createForm.date_of_birth" type="date" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <DateInput id="create-dob" v-model="createForm.date_of_birth" :has-error="!!createForm.errors.date_of_birth" />
                                 <div v-if="createForm.errors.date_of_birth" class="text-xs text-rose-400 mt-1">{{ createForm.errors.date_of_birth }}</div>
                             </div>
                             <div>
@@ -890,11 +891,11 @@ const submitCreateForm = () => {
 
                             <div>
                                 <label class="block text-xs text-slate-400 mb-1">Ngày sinh</label>
-                                <input
+                                <DateInput
                                     v-model="editForm.date_of_birth"
-                                    type="date"
-                                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                    :has-error="!!editForm.errors.date_of_birth"
                                 />
+                                <div v-if="editForm.errors.date_of_birth" class="text-xs text-rose-400 mt-1">{{ editForm.errors.date_of_birth }}</div>
                             </div>
 
                             <div>

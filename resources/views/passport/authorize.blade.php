@@ -479,10 +479,12 @@
                     Từ chối yêu cầu
                 </button>
             </form>
+
+            
         </div>
     </div>
 
-    <!-- Script chống Double-Submit để bảo vệ một lần dùng của session authToken -->
+        <!-- Script xử lý cấp quyền an toàn (hỗ trợ AJAX cho môi trường iframe/sandbox và trình duyệt thông thường) -->
     <script>
         (function() {
             var approveForm = document.getElementById('approve-form');
@@ -491,18 +493,81 @@
             var btnApproveText = document.getElementById('btn-approve-text');
             var btnDeny = document.getElementById('btn-deny');
 
-            if (approveForm) {
-                approveForm.addEventListener('submit', function() {
-                    btnApprove.disabled = true;
-                    btnDeny.disabled = true;
+            function handleOAuthAction(form, isApprove) {
+                if (btnApprove) btnApprove.disabled = true;
+                if (btnDeny) btnDeny.disabled = true;
+                if (isApprove && btnApproveText) {
                     btnApproveText.textContent = 'Đang xác thực & chuyển hướng...';
+                }
+
+                var formData = new FormData(form);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(function(res) {
+                    return res.json().catch(function() {
+                        return { redirect_uri: res.headers.get('Location') || '' };
+                    });
+                })
+                .then(function(data) {
+                    var targetUrl = data.redirect_uri;
+                    if (targetUrl) {
+                        try {
+                            if (window.top && window.top !== window.self) {
+                                window.top.location.href = targetUrl;
+                                return;
+                            }
+                        } catch (e) {
+                            // Cross-origin top navigation restricted
+                        }
+
+                        try {
+                            window.location.href = targetUrl;
+                        } catch (e) {
+                            // Fallback link
+                        }
+
+                        // Guaranteed fallback link for strict sandboxed frames
+                        var finishBox = document.getElementById('oauth-finish-link');
+                        if (!finishBox) {
+                            finishBox = document.createElement('div');
+                            finishBox.id = 'oauth-finish-link';
+                            finishBox.style.marginTop = '1rem';
+                            finishBox.style.textAlign = 'center';
+                            finishBox.innerHTML = '<a href="' + targetUrl + '" target="_top" style="display:inline-block;padding:0.75rem 1.25rem;background:#10b981;color:#fff;border-radius:0.75rem;font-weight:700;text-decoration:none;font-size:0.875rem;box-shadow:0 4px 12px rgba(16,185,129,0.3);">👉 Bấm vào đây để tiếp tục về Ứng dụng</a>';
+                            if (form.parentNode) {
+                                form.parentNode.appendChild(finishBox);
+                            }
+                        }
+                    } else {
+                        // If no JSON redirect returned, fallback to native submission
+                        form.submit();
+                    }
+                })
+                .catch(function(err) {
+                    console.warn('[SSO] AJAX submit fallback to native form:', err);
+                    form.submit();
+                });
+            }
+
+            if (approveForm) {
+                approveForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleOAuthAction(approveForm, true);
                 });
             }
 
             if (denyForm) {
-                denyForm.addEventListener('submit', function() {
-                    btnApprove.disabled = true;
-                    btnDeny.disabled = true;
+                denyForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    handleOAuthAction(denyForm, false);
                 });
             }
         })();

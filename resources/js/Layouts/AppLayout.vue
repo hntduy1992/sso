@@ -64,6 +64,12 @@ const breadcrumbs = computed(() => {
             { label: 'Nhật ký Kiểm toán', href: '/admin/audit-logs' },
         ];
     }
+    if (comp === 'Admin/ApplicationAccess/Index') {
+        return [
+            { label: 'Hệ thống CSM', href: '/dashboard' },
+            { label: 'Quyền truy cập ứng dụng', href: '/admin/application-access' },
+        ];
+    }
     if (comp === 'Developer/Clients') {
         return [
             { label: 'Cổng Ứng dụng', href: '/developer/clients' },
@@ -158,6 +164,23 @@ const breadcrumbs = computed(() => {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
                         <span v-show="!sidebarCollapsed" class="truncate">Cơ cấu & HRM</span>
+                    </Link>
+
+                    <!-- Quyền truy cập ứng dụng -->
+                    <Link
+                        href="/admin/application-access"
+                        :title="sidebarCollapsed ? 'Quyền truy cập ứng dụng' : undefined"
+                        :class="[
+                            'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
+                            $page.component === 'Admin/ApplicationAccess/Index'
+                                ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm shadow-indigo-500/10'
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                        ]"
+                    >
+                        <svg class="w-5 h-5 shrink-0 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        <span v-show="!sidebarCollapsed" class="truncate">Quyền truy cập ứng dụng</span>
                     </Link>
 
                     <!-- Audit Logs -->
@@ -328,6 +351,9 @@ const breadcrumbs = computed(() => {
                             </Link>
                             <Link href="/admin/departments" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                                 Cơ cấu & HRM
+                            </Link>
+                            <Link href="/admin/application-access" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                                Quyền truy cập ứng dụng
                             </Link>
                             <Link href="/admin/audit-logs" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                                 Nhật ký Audit Logs

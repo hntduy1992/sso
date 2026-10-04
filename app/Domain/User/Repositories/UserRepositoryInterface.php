@@ -13,6 +13,8 @@ interface UserRepositoryInterface
 
     public function findByEmail(string $email): ?User;
 
+    public function findByEmailOrPhone(string $identifier): ?User;
+
     public function getAllPaginated(
         int $perPage = 10,
         ?string $search = null,

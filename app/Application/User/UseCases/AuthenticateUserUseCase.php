@@ -10,6 +10,7 @@ use App\Domain\User\Exceptions\AccountSuspendedException;
 use App\Domain\User\Exceptions\InvalidCredentialsException;
 use App\Domain\User\Repositories\UserRepositoryInterface;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 
@@ -26,7 +27,7 @@ class AuthenticateUserUseCase
      */
     public function execute(LoginDTO $dto): User
     {
-        $user = $this->userRepository->findByEmail($dto->email);
+        $user = $this->userRepository->findByEmailOrPhone($dto->login);
 
         if (! $user || ! Hash::check($dto->password, $user->password)) {
             throw new InvalidCredentialsException;
@@ -36,9 +37,7 @@ class AuthenticateUserUseCase
             throw new AccountSuspendedException;
         }
 
-        if (! $this->userRepository->attempt($dto->email, $dto->password, $dto->remember)) {
-            throw new InvalidCredentialsException;
-        }
+        Auth::login($user, $dto->remember);
 
         // Regenerate session to prevent session fixation attacks
         Session::regenerate();

@@ -46,6 +46,7 @@ class AuthController extends Controller
             $user = $authenticateUserUseCase->execute($dto);
         } catch (InvalidCredentialsException|AccountSuspendedException $e) {
             throw ValidationException::withMessages([
+                'login' => [$e->getMessage()],
                 'email' => [$e->getMessage()],
             ]);
         }

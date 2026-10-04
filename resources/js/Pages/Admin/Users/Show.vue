@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import DateInput from '@/Components/DateInput.vue';
+import { formatToDisplayDate } from '@/utils/date';
 
 interface UserInfo {
     id: number;
@@ -291,7 +293,7 @@ const submitResetPassword = () => {
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <span class="text-xs text-slate-400">Ngày sinh</span>
-                                    <div class="font-medium text-slate-200">{{ profile?.date_of_birth || 'Chưa cập nhật' }}</div>
+                                    <div class="font-medium text-slate-200">{{ formatToDisplayDate(profile?.date_of_birth) || 'Chưa cập nhật' }}</div>
                                 </div>
                                 <div>
                                     <span class="text-xs text-slate-400">Giới tính</span>
@@ -400,7 +402,7 @@ const submitResetPassword = () => {
                                     <div class="flex flex-wrap items-center gap-4 text-xs text-slate-400">
                                         <span>Đơn vị: <strong class="text-slate-300">[{{ pos.department_code }}] {{ pos.department_type === 'management_board' ? 'Ban Giám đốc' : 'Tổ chuyên môn' }}</strong></span>
                                         <span>&bull;</span>
-                                        <span>Ngày bổ nhiệm: <strong class="text-slate-300">{{ pos.started_at }}</strong></span>
+                                        <span>Ngày bổ nhiệm: <strong class="text-slate-300">{{ formatToDisplayDate(pos.started_at) }}</strong></span>
                                         <span v-if="pos.notes">&bull;</span>
                                         <span v-if="pos.notes" class="italic text-slate-400">"{{ pos.notes }}"</span>
                                     </div>
@@ -458,9 +460,9 @@ const submitResetPassword = () => {
                                         </span>
                                     </div>
                                     <div class="text-xs text-slate-400 flex items-center gap-3">
-                                        <span>Từ: {{ pos.started_at }}</span>
+                                        <span>Từ: {{ formatToDisplayDate(pos.started_at) }}</span>
                                         <span>&rarr;</span>
-                                        <span>Đến: {{ pos.ended_at }}</span>
+                                        <span>Đến: {{ formatToDisplayDate(pos.ended_at) }}</span>
                                     </div>
                                     <div v-if="pos.notes" class="text-xs text-slate-500 italic pt-1">
                                         Ghi chú: {{ pos.notes }}
@@ -542,10 +544,10 @@ const submitResetPassword = () => {
                         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                             Ngày bắt đầu nhiệm kỳ *
                         </label>
-                        <input
+                        <DateInput
                             v-model="assignForm.started_at"
-                            type="date"
-                            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                            :has-error="!!assignForm.errors.started_at"
+                            required
                         />
                         <div v-if="assignForm.errors.started_at" class="text-xs text-rose-400 mt-1">{{ assignForm.errors.started_at }}</div>
                     </div>
@@ -625,7 +627,7 @@ const submitResetPassword = () => {
                     <div class="p-3 my-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
                         <div>Chức danh: <strong class="text-white">{{ positionToTerminate.position_type_name }}</strong></div>
                         <div>Đơn vị: <strong class="text-white">{{ positionToTerminate.department_name }}</strong></div>
-                        <div>Bắt đầu: <strong class="text-white">{{ positionToTerminate.started_at }}</strong></div>
+                        <div>Bắt đầu: <strong class="text-white">{{ formatToDisplayDate(positionToTerminate.started_at) }}</strong></div>
                     </div>
                 </div>
 

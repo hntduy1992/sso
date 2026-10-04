@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SocialProviderCard from '@/Pages/Profile/components/SocialProviderCard.vue';
+import DateInput from '@/Components/DateInput.vue';
 
 interface ProfileData {
     id: number;
@@ -326,12 +327,13 @@ const copySecret = () => {
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-300 mb-2">Ngày sinh</label>
-                            <input
+                            <DateInput
                                 id="date_of_birth"
                                 v-model="personalForm.date_of_birth"
-                                type="date"
-                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition"
+                                :has-error="!!personalForm.errors.date_of_birth"
+                                input-class="!py-2.5 !px-4"
                             />
+                            <p v-if="personalForm.errors.date_of_birth" class="mt-1 text-xs text-rose-400">{{ personalForm.errors.date_of_birth }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-300 mb-2">Giới tính</label>

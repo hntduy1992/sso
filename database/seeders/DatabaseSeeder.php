@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // 1. Super Admin
-        User::updateOrCreate(
+        $admin = User::updateOrCreate(
             ['email' => 'admin@sso.local'],
             [
                 'name' => 'System Administrator',
@@ -24,9 +24,16 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+        $admin->profile()->updateOrCreate(
+            ['user_id' => $admin->id],
+            [
+                'full_name' => 'System Administrator',
+                'phone_number' => '0901234567',
+            ]
+        );
 
         // 2. Regular User
-        User::updateOrCreate(
+        $regularUser = User::updateOrCreate(
             ['email' => 'user@sso.local'],
             [
                 'name' => 'John Doe',
@@ -34,6 +41,13 @@ class DatabaseSeeder extends Seeder
                 'role' => 'user',
                 'status' => 'active',
                 'email_verified_at' => now(),
+            ]
+        );
+        $regularUser->profile()->updateOrCreate(
+            ['user_id' => $regularUser->id],
+            [
+                'full_name' => 'John Doe',
+                'phone_number' => '0912345678',
             ]
         );
 

@@ -21,6 +21,32 @@ class EloquentUserRepository implements UserRepositoryInterface
         return User::where('email', $email)->first();
     }
 
+    public function findByEmailOrPhone(string $identifier): ?User
+    {
+        $trimmed = trim($identifier);
+
+        if (str_contains($trimmed, '@')) {
+            return User::where('email', strtolower($trimmed))->first();
+        }
+
+        $digits = preg_replace('/[^\d+]/', '', $trimmed);
+        $variations = array_values(array_filter(array_unique([
+            $trimmed,
+            $digits,
+            str_starts_with($digits, '0') ? substr($digits, 1) : null,
+            str_starts_with($digits, '0') ? '+84'.substr($digits, 1) : null,
+            str_starts_with($digits, '+84') ? '0'.substr($digits, 3) : null,
+            str_starts_with($digits, '+84') ? substr($digits, 3) : null,
+            (! str_starts_with($digits, '0') && ! str_starts_with($digits, '+')) ? '0'.$digits : null,
+        ])));
+
+        return User::where('email', $trimmed)
+            ->orWhereHas('profile', function ($q) use ($variations) {
+                $q->whereIn('phone_number', $variations);
+            })
+            ->first();
+    }
+
     public function getAllPaginated(
         int $perPage = 10,
         ?string $search = null,

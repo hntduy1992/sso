@@ -36,6 +36,48 @@ class AuthTest extends TestCase
         $response->assertRedirect(route('dashboard'));
     }
 
+    public function test_user_can_authenticate_with_phone_number(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'phone-test@sso.local',
+            'password' => bcrypt('Password123'),
+            'status' => 'active',
+            'role' => 'user',
+        ]);
+        $user->profile()->create([
+            'phone_number' => '0987654321',
+        ]);
+
+        $response = $this->post('/login', [
+            'login' => '0987654321',
+            'password' => 'Password123',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('dashboard'));
+    }
+
+    public function test_user_can_authenticate_with_formatted_phone_number(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'phone-intl@sso.local',
+            'password' => bcrypt('Password123'),
+            'status' => 'active',
+            'role' => 'user',
+        ]);
+        $user->profile()->create([
+            'phone_number' => '0987654321',
+        ]);
+
+        $response = $this->post('/login', [
+            'login' => '+84 987 654 321',
+            'password' => 'Password123',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('dashboard'));
+    }
+
     public function test_suspended_user_cannot_authenticate(): void
     {
         User::factory()->create([

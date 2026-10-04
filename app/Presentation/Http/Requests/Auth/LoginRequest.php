@@ -21,7 +21,8 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'login' => ['required_without:email', 'nullable', 'string', 'max:255'],
+            'email' => ['required_without:login', 'nullable', 'string', 'max:255'],
             'password' => ['required', 'string', 'min:6'],
             'remember' => ['sometimes', 'boolean'],
             'redirect' => ['nullable', 'string', 'max:1000'],
@@ -34,8 +35,10 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'Vui lòng nhập địa chỉ email.',
-            'email.email' => 'Địa chỉ email không đúng định dạng.',
+            'login.required' => 'Vui lòng nhập địa chỉ email hoặc số điện thoại.',
+            'login.required_without' => 'Vui lòng nhập địa chỉ email hoặc số điện thoại.',
+            'email.required' => 'Vui lòng nhập địa chỉ email hoặc số điện thoại.',
+            'email.required_without' => 'Vui lòng nhập địa chỉ email hoặc số điện thoại.',
             'password.required' => 'Vui lòng nhập mật khẩu.',
             'password.min' => 'Mật khẩu phải có ít nhất 6 ký tự.',
         ];
@@ -43,8 +46,10 @@ class LoginRequest extends FormRequest
 
     public function toDTO(): LoginDTO
     {
+        $identifier = (string) ($this->input('login') ?: $this->input('email'));
+
         return new LoginDTO(
-            email: (string) $this->validated('email'),
+            login: $identifier,
             password: (string) $this->validated('password'),
             remember: (bool) $this->boolean('remember'),
             redirect: $this->validated('redirect') ? (string) $this->validated('redirect') : null,
