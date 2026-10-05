@@ -49,8 +49,8 @@ class SecurityHeadersMiddleware
         // 6. Modern XSS Protection header (disables legacy buggy auditor in favor of CSP)
         $response->headers->set('X-XSS-Protection', '0');
 
-        // 7. Strict-Transport-Security (HSTS) on HTTPS or production
-        if ($request->isSecure() || app()->environment('production')) {
+        // 7. Strict-Transport-Security (HSTS) only on HTTPS connections (RFC 6797)
+        if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
