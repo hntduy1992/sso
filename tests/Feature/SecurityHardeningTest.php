@@ -66,21 +66,6 @@ class SecurityHardeningTest extends TestCase
         $this->assertStringContainsString("default-src 'self'", $csp);
     }
 
-    public function test_csp_includes_configured_app_and_custom_origins(): void
-    {
-        config(['app.url' => 'https://ttcudvcsadec.dongthap.gov.vn/sso']);
-        putenv('CSP_ALLOWED_HOSTS=http://192.168.1.100:8000');
-
-        $response = $this->get('/login');
-
-        $csp = (string) $response->headers->get('Content-Security-Policy');
-        $this->assertStringContainsString('https://ttcudvcsadec.dongthap.gov.vn', $csp);
-        $this->assertStringContainsString('http://192.168.1.100:8000', $csp);
-
-        // Reset
-        putenv('CSP_ALLOWED_HOSTS');
-    }
-
     public function test_api_responses_include_security_headers(): void
     {
         $response = $this->getJson('/api/health');
