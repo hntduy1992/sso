@@ -28,16 +28,18 @@ class SecurityHeadersMiddleware
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
         // 4. Content Security Policy (CSP)
-        // Disallows framing ('frame-ancestors none') while permitting necessary Inertia/Vite assets
-        $csp = "default-src 'self'; "
-            ."script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net; "
-            ."font-src 'self' https://fonts.bunny.net data:; "
-            ."img-src 'self' data: https:; "
+        // Disallows framing ('frame-ancestors none') while permitting necessary Inertia/Vite assets and configured domains
+        $extraOrigins = $this->resolveAllowedOrigins();
+
+        $csp = "default-src 'self'{$extraOrigins}; "
+            ."script-src 'self' 'unsafe-inline' 'unsafe-eval'{$extraOrigins}; "
+            ."style-src 'self' 'unsafe-inline' https://fonts.bunny.net{$extraOrigins}; "
+            ."font-src 'self' https://fonts.bunny.net data:{$extraOrigins}; "
+            ."img-src 'self' data: https:{$extraOrigins}; "
             ."connect-src 'self' *; "
             ."frame-ancestors 'none'; "
             ."base-uri 'self'; "
-            ."form-action 'self' http://127.0.0.1:* http://localhost:*; ";
+            ."form-action 'self'{$extraOrigins} http://127.0.0.1:* http://localhost:*; ";
 
         $response->headers->set('Content-Security-Policy', $csp);
 
@@ -53,5 +55,52 @@ class SecurityHeadersMiddleware
         }
 
         return $response;
+    }
+
+    /**
+     * Resolve allowed origins from APP_URL, ASSET_URL, and CSP_ALLOWED_HOSTS.
+     */
+    private function resolveAllowedOrigins(): string
+    {
+        $origins = [];
+
+        // 1. Origin from APP_URL
+        $appUrl = config('app.url');
+        if (is_string($appUrl) && $appUrl !== '') {
+            $parsed = parse_url($appUrl);
+            if (! empty($parsed['host'])) {
+                $scheme = $parsed['scheme'] ?? 'https';
+                $port = isset($parsed['port']) ? ':'.$parsed['port'] : '';
+                $origins[] = "{$scheme}://{$parsed['host']}{$port}";
+            }
+        }
+
+        // 2. Origin from ASSET_URL
+        $assetUrl = env('ASSET_URL');
+        if (is_string($assetUrl) && $assetUrl !== '') {
+            $parsedAsset = parse_url($assetUrl);
+            if (! empty($parsedAsset['host'])) {
+                $scheme = $parsedAsset['scheme'] ?? 'https';
+                $port = isset($parsedAsset['port']) ? ':'.$parsedAsset['port'] : '';
+                $origins[] = "{$scheme}://{$parsedAsset['host']}{$port}";
+            }
+        }
+
+        // 3. Custom origins from CSP_ALLOWED_HOSTS (space or comma separated)
+        $customHosts = env('CSP_ALLOWED_HOSTS');
+        if (is_string($customHosts) && trim($customHosts) !== '') {
+            $parts = preg_split('/[\s,]+/', trim($customHosts));
+            if (is_array($parts)) {
+                foreach ($parts as $part) {
+                    if ($part !== '') {
+                        $origins[] = $part;
+                    }
+                }
+            }
+        }
+
+        $unique = array_unique(array_filter($origins));
+
+        return ! empty($unique) ? ' '.implode(' ', $unique) : '';
     }
 }
