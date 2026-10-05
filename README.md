@@ -1,58 +1,112 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Enterprise Single Sign-On (SSO) Identity Provider
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Hệ thống Quản lý Danh tính và Xác thực Tập trung (**Identity Provider - IdP**) xây dựng trên nền tảng **Laravel 12**, **Laravel Passport 12**, hỗ trợ đầy đủ các chuẩn công nghiệp **OpenID Connect (OIDC) Core 1.0**, **OAuth 2.0 (RFC 6749, RFC 7662, RFC 7009)** và **PKCE (Proof Key for Code Exchange)**.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 📚 Tài Liệu Hướng Dẫn Kỹ Thuật
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **[howtouse.md](./howtouse.md)**: Sổ tay đặc tả chi tiết toàn bộ Router, tham số đầu vào (Headers, Query, Body), cấu trúc dữ liệu phản hồi (JSON claims, HRM profile, Department, Position, Roles) và hướng dẫn ứng dụng vệ tinh khai thác dữ liệu.
+- **[howtoconnect.md](./howtoconnect.md)**: Hướng dẫn kết nối kỹ thuật cho từng loại Client (SPA React/Vue, Mobile Flutter/React Native, Traditional Backend Web, Microservice M2M) trên cả môi trường Dev & Production.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🚀 Hướng Dẫn Cài Đặt & Triển Khai (Deployment Guide)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 1. Yêu Cầu Môi Trường
+- **PHP:** >= 8.3 (yêu cầu các extensions: `OpenSSL`, `PDO`, `Mbstring`, `Tokenizer`, `XML`, `Ctype`, `JSON`, `BCMath`)
+- **MySQL / MariaDB:** >= 8.0
+- **Node.js:** >= 20.x & **NPM**
+- **Composer:** >= 2.x
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 2. Các Bước Cài Đặt Chi Tiết
 
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+#### Bước 1: Cài đặt Dependencies
 ```bash
-composer require laravel/boost --dev
+# Cài đặt PHP dependencies
+composer install --no-dev --optimize-autoloader
 
-php artisan boost:install
+# Cài đặt Node dependencies và build frontend
+npm install
+npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+#### Bước 2: Thiết lập Biến Môi Trường (.env)
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+Cấu hình các thông số cơ sở dữ liệu (`DB_HOST`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`) và URL của hệ thống (`APP_URL=https://sso.yourdomain.com`).
 
-## Contributing
+#### Bước 3: Chạy Database Migration & Seeding
+```bash
+php artisan migrate --force
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+#### Bước 4: Khởi Tạo Cặp Khóa Mã Hóa OAuth2 (BẮT BUỘC)
 
-## Code of Conduct
+> ⚠️ **LƯU Ý CỰC KỲ QUAN TRỌNG KHI TRIỂN KHAI:**  
+> Hệ thống SSO sử dụng mã hóa RSA (RS256) để ký Authorization Code và Access Token JWT. Bạn **bắt buộc phải chạy lệnh sau một lần duy nhất** khi thiết lập máy chủ mới:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan passport:keys
+```
 
-## Security Vulnerabilities
+- **Mục đích:** Tạo ra 2 file khóa mã hóa trong thư mục lưu trữ:
+  - `storage/oauth-private.key`: Khóa bí mật dùng để ký token.
+  - `storage/oauth-public.key`: Khóa công khai công bố qua endpoint `/oauth/jwks` để các ứng dụng vệ tinh tự kiểm tra chữ ký token offline.
+- **Lưu ý bảo mật:**
+  - Khóa này **chỉ tạo 1 lần duy nhất** cho toàn bộ máy chủ SSO. **Không** cần chạy lại khi thêm ứng dụng vệ tinh mới.
+  - Trên môi trường Production container (Docker/Kubernetes), có thể inject nội dung khóa trực tiếp qua 2 biến môi trường `PASSPORT_PRIVATE_KEY` và `PASSPORT_PUBLIC_KEY` mà không cần lưu file trong thư mục `storage/`.
+  - Không tùy tiện chạy `passport:keys --force` khi hệ thống đang vận hành vì sẽ làm mất hiệu lực toàn bộ token hiện tại của người dùng.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+#### Bước 5: Cấu Hình Cache & Tối Ưu Hóa (Production)
+```bash
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
 
-## License
+#### Bước 6: Khởi Chạy Queue Worker (Xử lý Backchannel Logout)
+Hệ thống sử dụng Queue nền để gửi webhook OIDC Back-Channel Logout đến các app vệ tinh khi có sự kiện đăng xuất tập trung hoặc Force Logout:
+```bash
+php artisan queue:work --queue=default --tries=3 --timeout=60
+```
+*(Khuyến nghị cấu hình chạy qua **Supervisor** hoặc **systemd** để tự động restart khi gặp sự cố).*
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+### 3. Kiểm Tra Trạng Thái Vận Hành (Health Check)
+
+Sau khi triển khai xong, bạn có thể kiểm tra sức khỏe của dịch vụ SSO qua endpoint:
+
+```bash
+curl -i http://localhost:8000/health
+```
+
+**Phản hồi kỳ vọng (HTTP 200 OK):**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-10-05T06:50:00+00:00",
+  "environment": "production",
+  "services": {
+    "database": "ok",
+    "cache": "ok",
+    "oauth_keys": "ok"
+  }
+}
+```
+
+---
+
+## 👥 Thêm Ứng Dụng Vệ Tinh Mới
+
+Khi có thêm một ứng dụng mới cần kết nối vào SSO, **không cần chạy bất kỳ lệnh nào trên máy chủ**. Quản trị viên chỉ cần thao tác trên giao diện Web:
+
+1. Đăng nhập trang quản trị SSO (`/login`).
+2. Vào **Developer Portal** (`/developer/clients`) -> Bấm **"Đăng ký Ứng dụng mới"** -> Khai báo Tên ứng dụng, loại Client (`PUBLIC` hoặc `CONFIDENTIAL`) và các Redirect URIs.
+3. Nhận `Client ID` (và `Client Secret` nếu có) để cấu hình vào ứng dụng vệ tinh.
+4. Vào **Admin Panel** > **Phân quyền ứng dụng** (`/admin/application-access`) để cấp quyền cho Phòng ban hoặc Người dùng được phép đăng nhập ứng dụng đó (cơ chế Deny-by-default).
