@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 interface SessionItem {
@@ -20,7 +21,7 @@ const terminateSession = (session: SessionItem) => {
         return;
     }
 
-    router.delete(`/profile/sessions/${session.id}`, {
+    router.delete(route('profile.sessions.destroy', session.id), {
         preserveScroll: true,
     });
 };
@@ -30,7 +31,7 @@ const revokeOthers = () => {
         return;
     }
 
-    router.post('/profile/sessions/revoke-others', {}, {
+    router.post(route('profile.sessions.revoke-others'), {}, {
         preserveScroll: true,
     });
 };

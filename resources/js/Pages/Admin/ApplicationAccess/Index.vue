@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue';
 import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 interface ClientItem {
@@ -56,8 +57,6 @@ const props = defineProps<{
 
 const selectedClient = computed(() => props.clients.find((c) => c.id === props.selectedClientId) ?? null);
 
-const baseUrl = '/admin/application-access';
-
 const searchTerm = ref(props.search || '');
 const departmentToGrant = ref<number | ''>('');
 const processing = ref(false);
@@ -68,14 +67,14 @@ onBeforeUnmount(() => clearTimeout(searchTimer));
 
 const selectClient = (clientId: string) => {
     searchTerm.value = '';
-    router.get(baseUrl, { client: clientId }, { preserveScroll: true });
+    router.get(route('admin.application-access.index'), { client: clientId }, { preserveScroll: true });
 };
 
 const onSearchInput = () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
         router.get(
-            baseUrl,
+            route('admin.application-access.index'),
             { client: props.selectedClientId, search: searchTerm.value || undefined },
             { preserveState: true, preserveScroll: true, replace: true, only: ['userResults', 'search'] },
         );
@@ -90,7 +89,7 @@ const grantUser = (userId: number) => {
     if (!props.selectedClientId) return;
     processing.value = true;
     router.post(
-        `${baseUrl}/${props.selectedClientId}/users`,
+        route('admin.application-access.grant-user', props.selectedClientId),
         { user_id: userId },
         {
             preserveScroll: true,
@@ -106,7 +105,7 @@ const grantDepartment = () => {
     if (!props.selectedClientId || departmentToGrant.value === '') return;
     processing.value = true;
     router.post(
-        `${baseUrl}/${props.selectedClientId}/departments`,
+        route('admin.application-access.grant-department', props.selectedClientId),
         { department_id: departmentToGrant.value },
         {
             preserveScroll: true,
@@ -122,7 +121,7 @@ const revoke = (grantId: number, label: string) => {
     if (!props.selectedClientId) return;
     if (!confirm(`Thu hồi quyền truy cập của ${label}?`)) return;
     processing.value = true;
-    router.delete(`${baseUrl}/${props.selectedClientId}/grants/${grantId}`, {
+    router.delete(route('admin.application-access.revoke', { clientId: props.selectedClientId, grantId }), {
         preserveScroll: true,
         onFinish: finish,
     });
