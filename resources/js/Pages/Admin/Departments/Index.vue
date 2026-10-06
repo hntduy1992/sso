@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 interface LeadershipUser {
@@ -95,12 +96,12 @@ const closeModal = () => {
 
 const submitForm = () => {
     if (editingDepartment.value) {
-        form.put(`/admin/departments/${editingDepartment.value.id}`, {
+        form.put(route('admin.departments.update', editingDepartment.value.id), {
             preserveScroll: true,
             onSuccess: () => closeModal(),
         });
     } else {
-        form.post('/admin/departments', {
+        form.post(route('admin.departments.store'), {
             preserveScroll: true,
             onSuccess: () => closeModal(),
         });
@@ -109,7 +110,7 @@ const submitForm = () => {
 
 const deleteDepartment = (dept: DepartmentItem) => {
     if (confirm(`Bạn có chắc chắn muốn xóa đơn vị "${dept.name}" không?`)) {
-        useForm({}).delete(`/admin/departments/${dept.id}`, {
+        useForm({}).delete(route('admin.departments.destroy', dept.id), {
             preserveScroll: true,
         });
     }
@@ -224,7 +225,7 @@ const toggleMembers = (deptId: number) => {
                                 </div>
                                 <div>
                                     <Link
-                                        :href="`/admin/users/${board.leadership.director.user_id}`"
+                                        :href="route('admin.users.show', board.leadership.director.user_id)"
                                         class="font-semibold text-white hover:text-amber-400 transition"
                                     >
                                         {{ board.leadership.director.name }}
@@ -270,7 +271,7 @@ const toggleMembers = (deptId: number) => {
                                     </div>
                                     <div>
                                         <Link
-                                            :href="`/admin/users/${pgd.user_id}`"
+                                            :href="route('admin.users.show', pgd.user_id)"
                                             class="text-sm font-semibold text-white hover:text-cyan-400 transition"
                                         >
                                             {{ pgd.name }}
@@ -282,7 +283,7 @@ const toggleMembers = (deptId: number) => {
                                 </div>
 
                                 <Link
-                                    :href="`/admin/users/${pgd.user_id}`"
+                                    :href="route('admin.users.show', pgd.user_id)"
                                     class="text-xs text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-slate-800 transition"
                                 >
                                     Xem hồ sơ &rarr;
@@ -389,7 +390,7 @@ const toggleMembers = (deptId: number) => {
                                         </div>
                                         <div>
                                             <Link
-                                                :href="`/admin/users/${team.leadership.team_lead.user_id}`"
+                                                :href="route('admin.users.show', team.leadership.team_lead.user_id)"
                                                 class="text-sm font-semibold text-white hover:text-emerald-300 transition"
                                             >
                                                 {{ team.leadership.team_lead.name }}
@@ -412,7 +413,7 @@ const toggleMembers = (deptId: number) => {
                                         <Link
                                             v-for="dtl in team.leadership.deputy_team_leads"
                                             :key="dtl.user_id"
-                                            :href="`/admin/users/${dtl.user_id}`"
+                                            :href="route('admin.users.show', dtl.user_id)"
                                             class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-800 text-xs text-slate-200 border border-slate-700/60 transition"
                                         >
                                             <span>{{ dtl.name }}</span>
@@ -466,7 +467,7 @@ const toggleMembers = (deptId: number) => {
                                         </div>
                                     </div>
                                     <Link
-                                        :href="`/admin/users/${member.user_id}`"
+                                        :href="route('admin.users.show', member.user_id)"
                                         class="text-indigo-400 hover:text-indigo-300 text-[11px]"
                                     >
                                         Chi tiết &rarr;

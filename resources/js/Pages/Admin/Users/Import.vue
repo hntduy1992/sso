@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Link, useHttp } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import * as XLSX from 'xlsx';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DateInput from '@/Components/DateInput.vue';
@@ -252,7 +253,7 @@ const canServerCheck = computed(() => !isRunning.value && counts.value.total > 0
 
 const serverCheck = async () => {
     const targets = rows.value.filter((r) => r.status !== 'created');
-    const ok = await processInChunks(targets, '/admin/users/import/validate', 'Đang kiểm tra trên máy chủ...');
+    const ok = await processInChunks(targets, route('admin.users.import.validate'), 'Đang kiểm tra trên máy chủ...');
     if (ok) {
         runMessage.value = counts.value.invalid > 0
             ? `Máy chủ phát hiện ${counts.value.invalid} dòng lỗi. Di chuột vào biểu tượng ❗ để xem chi tiết.`
@@ -265,7 +266,7 @@ const runImport = async () => {
     if (targets.length === 0) return;
     if (!confirm(`Tạo ${targets.length} tài khoản mới${departmentId.value ? ' và gán vào đơn vị đã chọn' : ''}?`)) return;
 
-    const ok = await processInChunks(targets, '/admin/users/import', 'Đang tạo tài khoản...');
+    const ok = await processInChunks(targets, route('admin.users.import.store'), 'Đang tạo tài khoản...');
     if (ok) {
         runMessage.value = counts.value.invalid > 0
             ? `Đã tạo ${counts.value.created} tài khoản. Còn ${counts.value.invalid} dòng lỗi — sửa lại rồi bấm Import để tiếp tục.`
@@ -297,7 +298,7 @@ const textFields: { field: ImportField; label: string; width: string; type?: str
                     </p>
                 </div>
                 <Link
-                    href="/dashboard"
+                    :href="route('dashboard')"
                     class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
                 >
                     &larr; Quay lại danh sách
@@ -502,7 +503,7 @@ const textFields: { field: ImportField; label: string; width: string; type?: str
                                 <td class="px-3 py-1.5 text-right whitespace-nowrap">
                                     <Link
                                         v-if="row.status === 'created' && row.user_id"
-                                        :href="`/admin/users/${row.user_id}`"
+                                        :href="route('admin.users.show', row.user_id)"
                                         class="px-2 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
                                     >
                                         Hồ sơ

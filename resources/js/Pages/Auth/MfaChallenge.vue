@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useForm, Head } from '@inertiajs/vue3';
+import { useForm, Head, Link } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 
 const showRecoveryMode = ref(false);
 
@@ -10,7 +11,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post('/mfa/challenge', {
+    form.post(route('mfa.challenge.store'), {
         onFinish: () => {
             form.code = '';
         },
@@ -124,9 +125,9 @@ const toggleRecoveryMode = () => {
                 </div>
 
                 <div class="mt-3 text-center">
-                    <a href="/login" class="text-xs text-slate-500 hover:text-slate-400 transition">
+                    <Link :href="route('login')" class="text-xs text-slate-500 hover:text-slate-400 transition">
                         ← Đăng nhập bằng tài khoản khác
-                    </a>
+                    </Link>
                 </div>
             </div>
 

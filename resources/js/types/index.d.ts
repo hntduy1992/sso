@@ -36,10 +36,26 @@ export interface FlashMessages {
     error?: string | null;
 }
 
+import { route as routeFn } from 'ziggy-js';
+
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
     auth: {
         user: User | null;
     };
     flash: FlashMessages;
     errors: Record<string, string>;
+    ziggy?: {
+        location: string;
+        [key: string]: unknown;
+    };
 };
+
+declare global {
+    const route: typeof routeFn;
+}
+
+declare module 'vue' {
+    interface ComponentCustomProperties {
+        route: typeof routeFn;
+    }
+}

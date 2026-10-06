@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DateInput from '@/Components/DateInput.vue';
 import type { PageProps, User } from '@/types';
@@ -51,7 +52,7 @@ const updatingUserId = ref<number | null>(null);
 
 const applyFilters = () => {
     router.get(
-        '/dashboard',
+        route('dashboard'),
         {
             search: searchQuery.value || undefined,
             status: currentStatus.value || undefined,
@@ -82,7 +83,7 @@ const toggleUserStatus = (user: ExtendedUser) => {
     updatingUserId.value = user.id;
 
     router.patch(
-        `/admin/users/${user.id}/status`,
+        route('admin.users.update-status', user.id),
         { status: newStatus },
         {
             preserveScroll: true,
@@ -99,7 +100,7 @@ const forceLogoutUser = (user: ExtendedUser) => {
         return;
     }
 
-    router.post(`/admin/users/${user.id}/force-logout`, {}, {
+    router.post(route('admin.users.force-logout', user.id), {}, {
         preserveScroll: true,
     });
 };
@@ -110,7 +111,7 @@ const softDeleteUser = (user: ExtendedUser) => {
         return;
     }
 
-    router.delete(`/admin/users/${user.id}`, {
+    router.delete(route('admin.users.destroy', user.id), {
         preserveScroll: true,
     });
 };
@@ -121,7 +122,7 @@ const restoreUser = (user: ExtendedUser) => {
         return;
     }
 
-    router.post(`/admin/users/${user.id}/restore`, {}, {
+    router.post(route('admin.users.restore', user.id), {}, {
         preserveScroll: true,
     });
 };
@@ -132,7 +133,7 @@ const forceDeleteUser = (user: ExtendedUser) => {
         return;
     }
 
-    router.delete(`/admin/users/${user.id}/force`, {
+    router.delete(route('admin.users.force-delete', user.id), {
         preserveScroll: true,
     });
 };
@@ -181,7 +182,7 @@ const closeEditModal = () => {
 const submitEditForm = () => {
     if (!editingUserId.value) return;
 
-    editForm.put(`/admin/users/${editingUserId.value}`, {
+    editForm.put(route('admin.users.update', editingUserId.value), {
         preserveScroll: true,
         onSuccess: () => closeEditModal(),
     });
@@ -218,7 +219,7 @@ const closeCreateModal = () => {
 };
 
 const submitCreateForm = () => {
-    createForm.post('/admin/users', {
+    createForm.post(route('admin.users.store'), {
         preserveScroll: true,
         onSuccess: () => closeCreateModal(),
     });
@@ -255,13 +256,13 @@ const submitCreateForm = () => {
                     </button>
                     <Link
                         id="link-import-users"
-                        href="/admin/users/import"
+                        :href="route('admin.users.import.create')"
                         class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition"
                     >
                         Import Excel
                     </Link>
                     <Link
-                        href="/admin/departments"
+                        :href="route('admin.departments.index')"
                         class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
                     >
                         <svg class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -584,7 +585,7 @@ const submitCreateForm = () => {
 
                                         <!-- HRM Detail Link -->
                                         <Link
-                                            :href="`/admin/users/${user.id}`"
+                                            :href="route('admin.users.show', user.id)"
                                             class="px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition"
                                             title="Xem hồ sơ nhân sự & phân bổ chức vụ"
                                         >

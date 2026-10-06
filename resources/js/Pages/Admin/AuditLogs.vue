@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 interface AuditLogItem {
@@ -38,7 +39,7 @@ const selectedEvent = ref(props.filters.event || '');
 
 const handleFilter = () => {
     router.get(
-        '/admin/audit-logs',
+        route('admin.audit-logs.index'),
         {
             event: selectedEvent.value || undefined,
             search: search.value || undefined,
