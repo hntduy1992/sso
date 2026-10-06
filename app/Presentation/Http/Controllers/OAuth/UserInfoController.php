@@ -59,11 +59,53 @@ class UserInfoController extends Controller
             'sub' => (string) $user->id,
         ];
 
-        // Profile scope
+        // Profile scope (personal & organizational HRM info)
         if ($hasScope('profile')) {
+            $user->loadMissing(['profile', 'activePositions.department', 'activePositions.positionType']);
+
             $claims['name'] = $user->name;
             $claims['picture'] = $user->avatar_url;
             $claims['updated_at'] = $user->updated_at?->timestamp;
+
+            // HRM Personal Profile
+            $profile = $user->profile;
+            $claims['phone_number'] = $profile?->phone_number;
+            $claims['gender'] = $profile?->gender;
+            $claims['date_of_birth'] = $profile?->date_of_birth?->format('Y-m-d');
+            $claims['address'] = $profile?->address;
+
+            // Organizational Department & Positions
+            $activePositions = $user->activePositions;
+            $primaryPosition = $activePositions->firstWhere('is_primary', true) ?? $activePositions->first();
+
+            $claims['department'] = $primaryPosition?->department ? [
+                'id' => $primaryPosition->department->id,
+                'name' => $primaryPosition->department->name,
+                'code' => $primaryPosition->department->code,
+                'type' => $primaryPosition->department->type,
+            ] : null;
+
+            $claims['position'] = $primaryPosition?->positionType ? [
+                'id' => $primaryPosition->positionType->id,
+                'name' => $primaryPosition->positionType->name,
+                'code' => $primaryPosition->positionType->code,
+                'level' => $primaryPosition->positionType->level,
+            ] : null;
+
+            $claims['positions'] = $activePositions->map(fn ($pos) => [
+                'department' => $pos->department ? [
+                    'id' => $pos->department->id,
+                    'name' => $pos->department->name,
+                    'code' => $pos->department->code,
+                ] : null,
+                'position_type' => $pos->positionType ? [
+                    'id' => $pos->positionType->id,
+                    'name' => $pos->positionType->name,
+                    'code' => $pos->positionType->code,
+                ] : null,
+                'is_primary' => (bool) $pos->is_primary,
+                'started_at' => $pos->started_at,
+            ])->values()->all();
         }
 
         // Email scope

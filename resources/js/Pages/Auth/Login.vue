@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm, usePage, Head } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import type { PageProps } from '@/types';
 
 const props = defineProps<{
@@ -12,23 +13,20 @@ const page = usePage<PageProps>();
 const showPassword = ref(false);
 
 const form = useForm({
-    email: 'admin@sso.local',
-    password: 'Admin@123456',
-    remember: true,
+    login: '',
+    email: '',
+    password: '',
+    remember: false,
     redirect: props.redirect || '',
 });
 
 const submit = () => {
-    form.post('/login', {
+    form.email = form.login;
+    form.post(route('login.store'), {
         onFinish: () => {
             form.password = '';
         },
     });
-};
-
-const quickFill = (email: string, pass: string) => {
-    form.email = email;
-    form.password = pass;
 };
 </script>
 
@@ -41,7 +39,7 @@ const quickFill = (email: string, pass: string) => {
         <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-600/20 rounded-full blur-3xl pointer-events-none" />
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
 
-        <div class="relative w-full max-w-md z-10">
+        <div class="relative w-full max-w-lg z-10">
             <!-- Branding Header -->
             <div class="text-center mb-8">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-[1px] shadow-lg shadow-indigo-500/25 mb-4">
@@ -51,12 +49,10 @@ const quickFill = (email: string, pass: string) => {
                         </svg>
                     </div>
                 </div>
-                <h1 class="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-                    SSO Central Identity Hub
+                <h1 class="font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                    <span class="block text-xl sm:text-2xl whitespace-nowrap">Trung tâm cung ứng dịch vụ công</span>
+                    <span class="block text-lg sm:text-xl font-semibold mt-1">Phường Sa Đéc</span>
                 </h1>
-                <p class="text-xs sm:text-sm text-slate-400 mt-1">
-                    Cổng đăng nhập tập trung & Quản lý phiên làm việc bảo mật
-                </p>
 
                 <!-- Client App Redirect Notice -->
                 <div v-if="redirect" class="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-medium">
@@ -83,10 +79,10 @@ const quickFill = (email: string, pass: string) => {
                 </div>
 
                 <form @submit.prevent="submit" class="space-y-5">
-                    <!-- Email field -->
+                    <!-- Email or Phone field -->
                     <div>
-                        <label for="email" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
-                            Địa chỉ Email
+                        <label for="login" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                            Địa chỉ Email hoặc Số điện thoại
                         </label>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -95,18 +91,18 @@ const quickFill = (email: string, pass: string) => {
                                 </svg>
                             </div>
                             <input
-                                id="email"
-                                v-model="form.email"
-                                type="email"
-                                autocomplete="email"
+                                id="login"
+                                v-model="form.login"
+                                type="text"
+                                autocomplete="username"
                                 required
-                                placeholder="name@company.com"
+                                placeholder="name@company.com hoặc 0901234567"
                                 class="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-150"
-                                :class="{ 'border-rose-500 focus:border-rose-500 focus:ring-rose-500': form.errors.email }"
+                                :class="{ 'border-rose-500 focus:border-rose-500 focus:ring-rose-500': form.errors.login || form.errors.email }"
                             />
                         </div>
-                        <p v-if="form.errors.email" class="mt-1.5 text-xs text-rose-400">
-                            {{ form.errors.email }}
+                        <p v-if="form.errors.login || form.errors.email" class="mt-1.5 text-xs text-rose-400">
+                            {{ form.errors.login || form.errors.email }}
                         </p>
                     </div>
 
@@ -116,9 +112,7 @@ const quickFill = (email: string, pass: string) => {
                             <label for="password" class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
                                 Mật khẩu
                             </label>
-                            <span class="text-xs text-indigo-400 hover:text-indigo-300 cursor-pointer transition">
-                                Quên mật khẩu?
-                            </span>
+                        
                         </div>
                         <div class="relative">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -180,41 +174,11 @@ const quickFill = (email: string, pass: string) => {
                         <span>{{ form.processing ? 'Đang xác thực...' : 'Đăng nhập vào SSO Hub' }}</span>
                     </button>
                 </form>
-
-                <!-- Quick Test Credentials -->
-                <div class="mt-6 pt-5 border-t border-slate-800">
-                    <p class="text-[11px] font-semibold tracking-wider uppercase text-slate-400 mb-2.5 text-center">
-                        Tài khoản thử nghiệm nhanh
-                    </p>
-                    <div class="grid grid-cols-3 gap-2">
-                        <button
-                            type="button"
-                            @click="quickFill('admin@sso.local', 'Admin@123456')"
-                            class="px-2.5 py-1.5 bg-slate-800/80 hover:bg-indigo-600/20 hover:border-indigo-500/50 border border-slate-700/60 rounded-lg text-xs text-slate-200 transition font-medium text-center cursor-pointer"
-                        >
-                            👑 Admin
-                        </button>
-                        <button
-                            type="button"
-                            @click="quickFill('user@sso.local', 'User@123456')"
-                            class="px-2.5 py-1.5 bg-slate-800/80 hover:bg-cyan-600/20 hover:border-cyan-500/50 border border-slate-700/60 rounded-lg text-xs text-slate-200 transition font-medium text-center cursor-pointer"
-                        >
-                            👤 User
-                        </button>
-                        <button
-                            type="button"
-                            @click="quickFill('suspended@sso.local', 'Suspended@123456')"
-                            class="px-2.5 py-1.5 bg-slate-800/80 hover:bg-rose-600/20 hover:border-rose-500/50 border border-slate-700/60 rounded-lg text-xs text-rose-300 transition font-medium text-center cursor-pointer"
-                        >
-                            🔒 Locked
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <!-- Footer notes -->
             <div class="text-center mt-6 text-xs text-slate-500">
-                <span>Kiến trúc Clean Architecture • Laravel 13 + Inertia.js + Vue 3</span>
+                <span>Tổ Thông tin và Truyền thông</span>
             </div>
         </div>
     </div>

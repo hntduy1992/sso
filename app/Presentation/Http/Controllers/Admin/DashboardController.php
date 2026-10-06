@@ -10,6 +10,7 @@ use App\Domain\Audit\Services\AuditLogger;
 use App\Domain\User\Exceptions\UserNotFoundException;
 use App\Domain\User\Repositories\UserRepositoryInterface;
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\OAuthRefreshToken;
 use App\Models\OAuthRefreshTokenFamily;
 use App\Models\User;
@@ -30,14 +31,30 @@ class DashboardController extends Controller
     public function index(Request $request, UserRepositoryInterface $userRepository): Response
     {
         $search = $request->query('search');
-        $users = $userRepository->getAllPaginated(10, is_string($search) ? $search : null);
+        $status = $request->query('status');
+        $role = $request->query('role');
+
+        $users = $userRepository->getAllPaginated(
+            perPage: 10,
+            search: is_string($search) ? $search : null,
+            status: is_string($status) ? $status : null,
+            role: is_string($role) ? $role : null,
+        );
         $stats = $userRepository->getStats();
 
         return Inertia::render('Dashboard', [
             'users' => $users,
             'stats' => $stats,
+            'departments' => Department::query()
+                ->where('type', 'specialized_team')
+                ->where('is_active', true)
+                ->orderBy('display_order')
+                ->orderBy('name')
+                ->get(['id', 'name', 'code']),
             'filters' => [
                 'search' => $search ?? '',
+                'status' => $status ?? '',
+                'role' => $role ?? '',
             ],
         ]);
     }

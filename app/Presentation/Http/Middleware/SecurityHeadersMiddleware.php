@@ -37,7 +37,7 @@ class SecurityHeadersMiddleware
             ."connect-src 'self' *; "
             ."frame-ancestors 'none'; "
             ."base-uri 'self'; "
-            ."form-action 'self';";
+            ."form-action 'self' http://127.0.0.1:* http://localhost:*; ";
 
         $response->headers->set('Content-Security-Policy', $csp);
 

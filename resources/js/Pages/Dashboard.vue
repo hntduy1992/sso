@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import DateInput from '@/Components/DateInput.vue';
 import type { PageProps, User } from '@/types';
 
+interface ExtendedUser extends User {
+    deleted_at?: string | null;
+}
+
 interface PaginatedUsers {
-    data: User[];
+    data: ExtendedUser[];
     current_page: number;
     last_page: number;
     total: number;
@@ -17,30 +23,56 @@ interface Stats {
     total: number;
     active: number;
     suspended: number;
+    trashed: number;
     admins: number;
+}
+
+interface DepartmentOption {
+    id: number;
+    name: string;
+    code: string;
 }
 
 const props = defineProps<{
     users: PaginatedUsers;
     stats: Stats;
+    departments: DepartmentOption[];
     filters: {
         search?: string;
+        status?: string;
+        role?: string;
     };
 }>();
 
 const page = usePage<PageProps>();
 const searchQuery = ref(props.filters.search || '');
+const currentStatus = ref(props.filters.status || '');
+const currentRole = ref(props.filters.role || '');
 const updatingUserId = ref<number | null>(null);
 
-const handleSearch = () => {
+const applyFilters = () => {
     router.get(
-        '/dashboard',
-        { search: searchQuery.value },
+        route('dashboard'),
+        {
+            search: searchQuery.value || undefined,
+            status: currentStatus.value || undefined,
+            role: currentRole.value || undefined,
+        },
         { preserveState: true, replace: true }
     );
 };
 
-const toggleUserStatus = (user: User) => {
+const filterByStatus = (status: string) => {
+    currentStatus.value = status;
+    applyFilters();
+};
+
+const handleSearch = () => {
+    applyFilters();
+};
+
+// Toggle status active / suspended
+const toggleUserStatus = (user: ExtendedUser) => {
     const newStatus = user.status === 'active' ? 'suspended' : 'active';
     const actionName = newStatus === 'active' ? 'Mở khóa' : 'Khóa';
 
@@ -51,7 +83,7 @@ const toggleUserStatus = (user: User) => {
     updatingUserId.value = user.id;
 
     router.patch(
-        `/admin/users/${user.id}/status`,
+        route('admin.users.update-status', user.id),
         { status: newStatus },
         {
             preserveScroll: true,
@@ -62,124 +94,346 @@ const toggleUserStatus = (user: User) => {
     );
 };
 
-const forceLogoutUser = (user: User) => {
+// Force logout user
+const forceLogoutUser = (user: ExtendedUser) => {
     if (!confirm(`Bạn có chắc chắn muốn cưỡng chế đăng xuất "${user.name}" khỏi toàn bộ phiên và ứng dụng vệ tinh?`)) {
         return;
     }
 
-    router.post(`/admin/users/${user.id}/force-logout`, {}, {
+    router.post(route('admin.users.force-logout', user.id), {}, {
         preserveScroll: true,
+    });
+};
+
+// Soft delete user
+const softDeleteUser = (user: ExtendedUser) => {
+    if (!confirm(`Bạn có chắc chắn muốn chuyển tài khoản "${user.name}" vào thùng rác? Người dùng sẽ không thể đăng nhập cho đến khi được khôi phục.`)) {
+        return;
+    }
+
+    router.delete(route('admin.users.destroy', user.id), {
+        preserveScroll: true,
+    });
+};
+
+// Restore soft-deleted user
+const restoreUser = (user: ExtendedUser) => {
+    if (!confirm(`Khôi phục tài khoản "${user.name}" hoạt động trở lại?`)) {
+        return;
+    }
+
+    router.post(route('admin.users.restore', user.id), {}, {
+        preserveScroll: true,
+    });
+};
+
+// Force permanent delete
+const forceDeleteUser = (user: ExtendedUser) => {
+    if (!confirm(`CẢNH BÁO NGUY HIỂM: Bạn có chắc chắn muốn XÓA VĨNH VIỄN tài khoản "${user.name}"? Toàn bộ dữ liệu hồ sơ, chức vụ, phiên đăng nhập sẽ bị xóa hoàn toàn khỏi cơ sở dữ liệu và không thể hoàn tác!`)) {
+        return;
+    }
+
+    router.delete(route('admin.users.force-delete', user.id), {
+        preserveScroll: true,
+    });
+};
+
+// Edit User Modal
+const isEditModalOpen = ref(false);
+const editingUserId = ref<number | null>(null);
+
+const editForm = useForm({
+    name: '',
+    email: '',
+    role: 'user' as 'admin' | 'user',
+    status: 'active' as 'active' | 'suspended',
+    full_name: '',
+    phone_number: '',
+    contact_email: '',
+    address: '',
+    gender: '' as '' | 'male' | 'female' | 'other',
+    date_of_birth: '',
+    bio: '',
+});
+
+const openEditModal = (user: ExtendedUser) => {
+    editingUserId.value = user.id;
+    editForm.clearErrors();
+    editForm.name = user.name;
+    editForm.email = user.email;
+    editForm.role = user.role;
+    editForm.status = user.status;
+    editForm.full_name = user.profile?.full_name || user.name;
+    editForm.phone_number = (user.profile as Record<string, any>)?.phone_number || '';
+    editForm.contact_email = (user.profile as Record<string, any>)?.contact_email || '';
+    editForm.address = (user.profile as Record<string, any>)?.address || '';
+    editForm.gender = (user.profile as Record<string, any>)?.gender || '';
+    editForm.date_of_birth = (user.profile as Record<string, any>)?.date_of_birth || '';
+    editForm.bio = (user.profile as Record<string, any>)?.bio || '';
+    isEditModalOpen.value = true;
+};
+
+const closeEditModal = () => {
+    isEditModalOpen.value = false;
+    editingUserId.value = null;
+    editForm.reset();
+};
+
+const submitEditForm = () => {
+    if (!editingUserId.value) return;
+
+    editForm.put(route('admin.users.update', editingUserId.value), {
+        preserveScroll: true,
+        onSuccess: () => closeEditModal(),
+    });
+};
+
+// Create User Modal
+const isCreateModalOpen = ref(false);
+
+const createForm = useForm({
+    name: '',
+    email: '',
+    password: '',
+    role: 'user' as 'admin' | 'user',
+    status: 'active' as 'active' | 'suspended',
+    department_id: '' as number | '',
+    full_name: '',
+    phone_number: '',
+    contact_email: '',
+    gender: '' as '' | 'male' | 'female' | 'other',
+    date_of_birth: '',
+    address: '',
+});
+
+const openCreateModal = () => {
+    createForm.reset();
+    createForm.clearErrors();
+    isCreateModalOpen.value = true;
+};
+
+const closeCreateModal = () => {
+    isCreateModalOpen.value = false;
+    createForm.reset();
+    createForm.clearErrors();
+};
+
+const submitCreateForm = () => {
+    createForm.post(route('admin.users.store'), {
+        preserveScroll: true,
+        onSuccess: () => closeCreateModal(),
     });
 };
 </script>
 
 <template>
-    <AppLayout title="Quản trị Danh tính">
-        <div class="space-y-6">
-
-            <!-- Page Title Section -->
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <AppLayout title="Quản trị Người Dùng CSM">
+        <div class="space-y-6 max-w-full">
+            <!-- Page Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-5">
                 <div>
-                    <h2 class="text-2xl font-bold text-white tracking-tight">
-                        Trung Tâm Quản Lý Định Danh (IAM Hub)
-                    </h2>
-                    <p class="text-sm text-slate-400 mt-1">
-                        Kiểm soát tài khoản người dùng, phân quyền và trạng thái truy cập hệ thống SSO
+                    <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+                        <span class="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                        </span>
+                        Quản Lý Người Dùng & Hồ Sơ Định Danh
+                    </h1>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Bảng điều khiển CSM: Quản lý danh sách tài khoản, chỉnh sửa thông tin, phân quyền và lưu trữ thùng rác
                     </p>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                        SSO Server: Hoạt động bình thường
-                    </span>
+
+                <div class="flex items-center gap-3">
+                    <button
+                        id="btn-create-user"
+                        type="button"
+                        @click="openCreateModal"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition"
+                    >
+                        + Thêm người dùng
+                    </button>
+                    <Link
+                        id="link-import-users"
+                        :href="route('admin.users.import.create')"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition"
+                    >
+                        Import Excel
+                    </Link>
+                    <Link
+                        :href="route('admin.departments.index')"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
+                    >
+                        <svg class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        Sơ đồ Cơ cấu & HRM
+                    </Link>
                 </div>
             </div>
 
-            <!-- KPI Summary Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- KPI Summary Cards (CSM Metrics) -->
+            <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Total Users -->
-                <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                <div
+                    @click="filterByStatus('')"
+                    class="bg-slate-900/60 border rounded-2xl p-4.5 backdrop-blur-sm cursor-pointer transition hover:border-indigo-500/50"
+                    :class="currentStatus === '' ? 'border-indigo-500/80 bg-indigo-950/20' : 'border-slate-800/80'"
+                >
+                    <div class="flex items-center justify-between text-slate-400 mb-1.5">
                         <span class="text-xs font-semibold uppercase tracking-wider">Tổng tài khoản</span>
-                        <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
                         </div>
                     </div>
-                    <div class="text-3xl font-extrabold text-white">{{ stats.total }}</div>
-                    <div class="text-xs text-slate-500 mt-1">Được lưu trữ trên Identity Database</div>
+                    <div class="text-2xl font-extrabold text-white">{{ stats.total }}</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5">Tất cả người dùng hệ thống</div>
                 </div>
 
                 <!-- Active Users -->
-                <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                <div
+                    @click="filterByStatus('active')"
+                    class="bg-slate-900/60 border rounded-2xl p-4.5 backdrop-blur-sm cursor-pointer transition hover:border-emerald-500/50"
+                    :class="currentStatus === 'active' ? 'border-emerald-500/80 bg-emerald-950/20' : 'border-slate-800/80'"
+                >
+                    <div class="flex items-center justify-between text-slate-400 mb-1.5">
                         <span class="text-xs font-semibold uppercase tracking-wider">Đang hoạt động</span>
-                        <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
                     </div>
-                    <div class="text-3xl font-extrabold text-emerald-400">{{ stats.active }}</div>
-                    <div class="text-xs text-slate-500 mt-1">Được phép đăng nhập hệ thống</div>
+                    <div class="text-2xl font-extrabold text-emerald-400">{{ stats.active }}</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5">Cho phép đăng nhập SSO</div>
                 </div>
 
                 <!-- Suspended Users -->
-                <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
+                <div
+                    @click="filterByStatus('suspended')"
+                    class="bg-slate-900/60 border rounded-2xl p-4.5 backdrop-blur-sm cursor-pointer transition hover:border-amber-500/50"
+                    :class="currentStatus === 'suspended' ? 'border-amber-500/80 bg-amber-950/20' : 'border-slate-800/80'"
+                >
+                    <div class="flex items-center justify-between text-slate-400 mb-1.5">
                         <span class="text-xs font-semibold uppercase tracking-wider">Tài khoản bị khóa</span>
-                        <div class="p-2 rounded-xl bg-rose-500/10 text-rose-400">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div class="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                             </svg>
                         </div>
                     </div>
-                    <div class="text-3xl font-extrabold text-rose-400">{{ stats.suspended }}</div>
-                    <div class="text-xs text-slate-500 mt-1">Bị chặn đăng nhập vào SSO Hub</div>
+                    <div class="text-2xl font-extrabold text-amber-400">{{ stats.suspended }}</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5">Tạm dừng quyền truy cập</div>
                 </div>
 
-                <!-- Administrators -->
-                <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-5 backdrop-blur-sm">
-                    <div class="flex items-center justify-between text-slate-400 mb-2">
-                        <span class="text-xs font-semibold uppercase tracking-wider">Quản trị viên</span>
-                        <div class="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                <!-- Trashed Users -->
+                <div
+                    @click="filterByStatus('trashed')"
+                    class="bg-slate-900/60 border rounded-2xl p-4.5 backdrop-blur-sm cursor-pointer transition hover:border-rose-500/50"
+                    :class="currentStatus === 'trashed' ? 'border-rose-500/80 bg-rose-950/20' : 'border-slate-800/80'"
+                >
+                    <div class="flex items-center justify-between text-slate-400 mb-1.5">
+                        <span class="text-xs font-semibold uppercase tracking-wider">Thùng rác (Đã xóa)</span>
+                        <div class="p-1.5 rounded-lg bg-rose-500/10 text-rose-400">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                         </div>
                     </div>
-                    <div class="text-3xl font-extrabold text-amber-400">{{ stats.admins }}</div>
-                    <div class="text-xs text-slate-500 mt-1">Quyền quản trị toàn hệ thống</div>
+                    <div class="text-2xl font-extrabold text-rose-400">{{ stats.trashed }}</div>
+                    <div class="text-[11px] text-slate-500 mt-0.5">Có thể khôi phục hoặc xóa hẳn</div>
                 </div>
             </div>
 
-            <!-- User Management Table Section -->
-            <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl">
-                <!-- Header & Search Toolbar -->
-                <div class="p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h3 class="font-bold text-lg text-white">Danh Sách Người Dùng Tập Trung</h3>
-                        <p class="text-xs text-slate-400">Xem thông tin và thay đổi trạng thái hoạt động của tài khoản</p>
+            <!-- Main CSM Table & Filter Bar -->
+            <div class="bg-slate-900/70 border border-slate-800/80 rounded-2xl overflow-hidden backdrop-blur-sm shadow-xl">
+                <!-- Status Tab Pills -->
+                <div class="p-4 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-4 bg-slate-950/40">
+                    <div class="flex items-center gap-1.5 overflow-x-auto">
+                        <button
+                            type="button"
+                            @click="filterByStatus('')"
+                            :class="[
+                                'px-3 py-1.5 rounded-xl text-xs font-semibold transition',
+                                currentStatus === ''
+                                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                            ]"
+                        >
+                            Tất cả ({{ stats.total }})
+                        </button>
+                        <button
+                            type="button"
+                            @click="filterByStatus('active')"
+                            :class="[
+                                'px-3 py-1.5 rounded-xl text-xs font-semibold transition',
+                                currentStatus === 'active'
+                                    ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                            ]"
+                        >
+                            Đang hoạt động ({{ stats.active }})
+                        </button>
+                        <button
+                            type="button"
+                            @click="filterByStatus('suspended')"
+                            :class="[
+                                'px-3 py-1.5 rounded-xl text-xs font-semibold transition',
+                                currentStatus === 'suspended'
+                                    ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                            ]"
+                        >
+                            Bị khóa ({{ stats.suspended }})
+                        </button>
+                        <button
+                            type="button"
+                            @click="filterByStatus('trashed')"
+                            :class="[
+                                'px-3 py-1.5 rounded-xl text-xs font-semibold transition',
+                                currentStatus === 'trashed'
+                                    ? 'bg-rose-600 text-white shadow-md shadow-rose-600/20'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                            ]"
+                        >
+                            Thùng rác ({{ stats.trashed }})
+                        </button>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <div class="relative w-full sm:w-64">
+                    <!-- Search and Role Dropdown -->
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <!-- Role Filter -->
+                        <select
+                            v-model="currentRole"
+                            @change="applyFilters"
+                            class="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+                        >
+                            <option value="">Tất cả vai trò</option>
+                            <option value="admin">Quản trị viên (Admin)</option>
+                            <option value="user">Người dùng (User)</option>
+                        </select>
+
+                        <!-- Search Input -->
+                        <div class="relative flex-1 sm:w-64">
                             <input
                                 v-model="searchQuery"
                                 @keyup.enter="handleSearch"
                                 type="text"
-                                placeholder="Tìm theo tên hoặc email..."
-                                class="w-full pl-9 pr-4 py-2 bg-slate-950/70 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                placeholder="Tìm theo tên, email, SĐT..."
+                                class="w-full pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                             />
-                            <svg class="w-4 h-4 text-slate-500 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
+
                         <button
                             type="button"
                             @click="handleSearch"
-                            class="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition cursor-pointer"
+                            class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition"
                         >
                             Tìm
                         </button>
@@ -189,13 +443,14 @@ const forceLogoutUser = (user: User) => {
                 <!-- Table Content -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="text-xs uppercase bg-slate-950/50 text-slate-400 border-b border-slate-800">
+                        <thead class="text-xs uppercase bg-slate-950/70 text-slate-400 border-b border-slate-800">
                             <tr>
-                                <th class="px-6 py-3.5 font-semibold">Người Dùng</th>
-                                <th class="px-6 py-3.5 font-semibold">Vai Trò (Role)</th>
-                                <th class="px-6 py-3.5 font-semibold">Trạng Thái</th>
-                                <th class="px-6 py-3.5 font-semibold">Thời Gian Tạo</th>
-                                <th class="px-6 py-3.5 font-semibold text-right">Thao Tác</th>
+                                <th class="px-5 py-3 font-semibold">Người Dùng</th>
+                                <th class="px-5 py-3 font-semibold">Chức Vụ (HRM)</th>
+                                <th class="px-5 py-3 font-semibold">Vai Trò Hệ Thống</th>
+                                <th class="px-5 py-3 font-semibold">Trạng Thái</th>
+                                <th class="px-5 py-3 font-semibold">Ngày Tạo</th>
+                                <th class="px-5 py-3 font-semibold text-right">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-800/60">
@@ -205,84 +460,193 @@ const forceLogoutUser = (user: User) => {
                                 class="hover:bg-slate-800/30 transition"
                             >
                                 <!-- User Info -->
-                                <td class="px-6 py-4">
+                                <td class="px-5 py-3.5">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-300">
+                                        <div class="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-indigo-300 shrink-0">
                                             {{ user.name.charAt(0).toUpperCase() }}
                                         </div>
                                         <div>
-                                            <div class="font-medium text-slate-100">{{ user.name }}</div>
+                                            <div class="font-semibold text-slate-100 flex items-center gap-1.5">
+                                                <span>{{ user.profile?.full_name || user.name }}</span>
+                                                <span v-if="user.profile?.full_name && user.profile.full_name !== user.name" class="text-xs text-slate-400">
+                                                    ({{ user.name }})
+                                                </span>
+                                            </div>
                                             <div class="text-xs text-slate-400">{{ user.email }}</div>
                                         </div>
                                     </div>
                                 </td>
 
+                                <!-- HRM Position Badge -->
+                                <td class="px-5 py-3.5">
+                                    <div v-if="user.active_positions && user.active_positions.length > 0" class="flex flex-col gap-1">
+                                        <div
+                                            v-for="pos in user.active_positions"
+                                            :key="pos.id"
+                                            class="inline-flex items-center gap-1.5"
+                                        >
+                                            <span
+                                                :class="[
+                                                    'px-2 py-0.5 rounded text-[11px] font-semibold border',
+                                                    pos.is_primary
+                                                        ? 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'
+                                                        : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                                ]"
+                                            >
+                                                {{ pos.position_type?.name }}
+                                                <span v-if="!pos.is_primary" class="text-[9px] opacity-80">(Kiêm)</span>
+                                            </span>
+                                            <span class="text-[11px] text-slate-400">
+                                                {{ pos.department?.name }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span v-else class="text-xs text-slate-500 italic">
+                                        Chưa phân bổ
+                                    </span>
+                                </td>
+
                                 <!-- Role Badge -->
-                                <td class="px-6 py-4">
+                                <td class="px-5 py-3.5">
                                     <span
-                                        class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium uppercase tracking-wide"
+                                        class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold uppercase tracking-wide border"
                                         :class="user.role === 'admin'
-                                            ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
-                                            : 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/30'"
+                                            ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                            : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30'"
                                     >
                                         {{ user.role }}
                                     </span>
                                 </td>
 
-                                <!-- Status Badge -->
-                                <td class="px-6 py-4">
-                                    <span
-                                        v-if="user.status === 'active'"
-                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                                    >
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                        Hoạt động
-                                    </span>
-                                    <span
-                                        v-else
-                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/30"
-                                    >
-                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                                        Đã khóa
-                                    </span>
+                                <!-- Status Badge & 2FA -->
+                                <td class="px-5 py-3.5">
+                                    <div class="flex flex-col gap-1 items-start">
+                                        <span
+                                            v-if="user.deleted_at"
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/15 text-rose-300 border border-rose-500/30"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                            Đã xóa tạm
+                                        </span>
+                                        <span
+                                            v-else-if="user.status === 'active'"
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            Hoạt động
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                            Bị khóa
+                                        </span>
+
+                                        <span
+                                            v-if="user.mfa_enabled"
+                                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                                            title="Đã bật xác thực 2 bước (TOTP)"
+                                        >
+                                            <svg class="w-2.5 h-2.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                            2FA
+                                        </span>
+                                    </div>
                                 </td>
 
                                 <!-- Created At -->
-                                <td class="px-6 py-4 text-xs text-slate-400">
+                                <td class="px-5 py-3.5 text-xs text-slate-400">
                                     {{ user.created_at ? new Date(user.created_at).toLocaleDateString('vi-VN') : '—' }}
                                 </td>
 
                                 <!-- Actions -->
-                                <td class="px-6 py-4 text-right">
-                                    <div v-if="page.props.auth.user?.id !== user.id" class="flex items-center justify-end gap-2">
+                                <td class="px-5 py-3.5 text-right">
+                                    <!-- When user is Trashed (Soft Deleted) -->
+                                    <div v-if="user.deleted_at" class="flex items-center justify-end gap-2">
                                         <button
                                             type="button"
-                                            @click="forceLogoutUser(user)"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition cursor-pointer"
-                                            title="Cưỡng chế đăng xuất khỏi tất cả phiên và ứng dụng con"
+                                            @click="restoreUser(user)"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition"
+                                            title="Khôi phục tài khoản người dùng"
                                         >
-                                            ⚡ Force Logout
+                                            Khôi phục
                                         </button>
-
                                         <button
+                                            v-if="page.props.auth.user?.id !== user.id"
                                             type="button"
-                                            :disabled="updatingUserId === user.id"
-                                            @click="toggleUserStatus(user)"
-                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                            :class="user.status === 'active'
-                                                ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'"
+                                            @click="forceDeleteUser(user)"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition"
+                                            title="Xóa vĩnh viễn khỏi hệ thống"
                                         >
-                                            <svg v-if="updatingUserId === user.id" class="animate-spin w-3.5 h-3.5 text-current" fill="none" viewBox="0 0 24 24">
-                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                            </svg>
-                                            <span v-else>{{ user.status === 'active' ? '🔒 Khóa' : '🔓 Mở khóa' }}</span>
+                                            Xóa hẳn
                                         </button>
                                     </div>
-                                    <span v-else class="text-xs text-slate-500 italic">
-                                        (Tài khoản hiện tại)
-                                    </span>
+
+                                    <!-- When user is Active / Normal -->
+                                    <div v-else class="flex items-center justify-end gap-1.5">
+                                        <!-- Edit button -->
+                                        <button
+                                            type="button"
+                                            @click="openEditModal(user)"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                                            title="Chỉnh sửa thông tin"
+                                        >
+                                            Sửa
+                                        </button>
+
+                                        <!-- HRM Detail Link -->
+                                        <Link
+                                            :href="route('admin.users.show', user.id)"
+                                            class="px-2.5 py-1 rounded-lg text-xs font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition"
+                                            title="Xem hồ sơ nhân sự & phân bổ chức vụ"
+                                        >
+                                            Hồ sơ & Chức vụ
+                                        </Link>
+
+                                        <template v-if="page.props.auth.user?.id !== user.id">
+                                            <!-- Force Logout -->
+                                            <button
+                                                type="button"
+                                                @click="forceLogoutUser(user)"
+                                                class="px-2 py-1 rounded-lg text-xs font-medium bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition"
+                                                title="Cưỡng chế đăng xuất"
+                                            >
+                                                ⚡
+                                            </button>
+
+                                            <!-- Toggle Status Lock/Unlock -->
+                                            <button
+                                                type="button"
+                                                :disabled="updatingUserId === user.id"
+                                                @click="toggleUserStatus(user)"
+                                                class="px-2.5 py-1 rounded-lg text-xs font-medium transition disabled:opacity-50"
+                                                :class="user.status === 'active'
+                                                    ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'"
+                                                :title="user.status === 'active' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'"
+                                            >
+                                                {{ user.status === 'active' ? 'Khóa' : 'Mở khóa' }}
+                                            </button>
+
+                                            <!-- Soft Delete (Thùng rác) -->
+                                            <button
+                                                type="button"
+                                                @click="softDeleteUser(user)"
+                                                class="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                                                title="Chuyển vào thùng rác"
+                                            >
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </template>
+
+                                        <span v-else class="text-[11px] text-slate-500 italic pl-1">
+                                            (Bạn)
+                                        </span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
@@ -295,46 +659,296 @@ const forceLogoutUser = (user: User) => {
                         Hiển thị {{ users.data.length }} trên tổng số {{ users.total }} tài khoản
                     </div>
                     <div class="flex items-center gap-2">
-                        <button
+                        <Link
                             v-if="users.prev_page_url"
-                            type="button"
-                            @click="router.get(users.prev_page_url)"
-                            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                            :href="users.prev_page_url"
+                            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition"
                         >
-                            Trang trước
-                        </button>
-                        <button
+                            &larr; Trang trước
+                        </Link>
+                        <Link
                             v-if="users.next_page_url"
-                            type="button"
-                            @click="router.get(users.next_page_url)"
-                            class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
+                            :href="users.next_page_url"
+                            class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition"
                         >
-                            Trang kế
-                        </button>
+                            Trang sau &rarr;
+                        </Link>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- SSO Integration Guide Card -->
-            <div class="bg-gradient-to-r from-indigo-950/40 via-slate-900/60 to-purple-950/40 border border-indigo-500/20 rounded-2xl p-6">
-                <div class="flex items-start gap-4">
-                    <div class="p-3 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <!-- Create User Modal -->
+        <div v-if="isCreateModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Thêm Người Dùng Mới</h3>
+                        <p class="text-xs text-slate-400">Tạo tài khoản đăng nhập và hồ sơ nhân sự</p>
+                    </div>
+                    <button type="button" @click="closeCreateModal" class="text-slate-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                    </div>
-                    <div class="space-y-2">
-                        <h4 class="text-base font-semibold text-white">Tích hợp Single Sign-On cho Client Apps</h4>
-                        <p class="text-xs text-slate-300 leading-relaxed">
-                            Để tích hợp các ứng dụng con (Client Web Apps) với SSO Hub này:
-                            khi người dùng chưa xác thực tại Client App, chuyển hướng người dùng đến
-                            <code class="px-2 py-0.5 rounded bg-slate-900 text-indigo-300 font-mono text-[11px] border border-slate-800">
-                                /login?redirect=https://client.yourdomain.com/auth/callback
-                            </code>.
-                            Sau khi đăng nhập thành công tại SSO Hub, hệ thống sẽ xác thực phiên và chuyển hướng an toàn trở lại ứng dụng của bạn.
-                        </p>
-                    </div>
+                    </button>
                 </div>
+
+                <form @submit.prevent="submitCreateForm" class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-name" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Tên đăng nhập *</label>
+                            <input id="create-name" v-model="createForm.name" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                            <div v-if="createForm.errors.name" class="text-xs text-rose-400 mt-1">{{ createForm.errors.name }}</div>
+                        </div>
+                        <div>
+                            <label for="create-email" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Email đăng nhập *</label>
+                            <input id="create-email" v-model="createForm.email" type="email" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                            <div v-if="createForm.errors.email" class="text-xs text-rose-400 mt-1">{{ createForm.errors.email }}</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-password" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Mật khẩu *</label>
+                            <input id="create-password" v-model="createForm.password" type="password" autocomplete="new-password" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                            <div v-if="createForm.errors.password" class="text-xs text-rose-400 mt-1">{{ createForm.errors.password }}</div>
+                        </div>
+                        <div>
+                            <label for="create-department" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Đơn vị (tuỳ chọn)</label>
+                            <select id="create-department" v-model="createForm.department_id" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="">-- Không gán đơn vị --</option>
+                                <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }} ({{ dept.code }})</option>
+                            </select>
+                            <div v-if="createForm.errors.department_id" class="text-xs text-rose-400 mt-1">{{ createForm.errors.department_id }}</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="create-role" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Vai trò hệ thống *</label>
+                            <select id="create-role" v-model="createForm.role" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="user">Người dùng (User)</option>
+                                <option value="admin">Quản trị viên (Admin)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="create-status" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Trạng thái *</label>
+                            <select id="create-status" v-model="createForm.status" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                <option value="active">Đang hoạt động (Active)</option>
+                                <option value="suspended">Tạm khóa (Suspended)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800 space-y-3">
+                        <div class="text-xs font-bold uppercase tracking-wider text-indigo-400">Hồ Sơ Nhân Sự (tuỳ chọn)</div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="create-full-name" class="block text-xs text-slate-400 mb-1">Họ và tên đầy đủ</label>
+                                <input id="create-full-name" v-model="createForm.full_name" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <div v-if="createForm.errors.full_name" class="text-xs text-rose-400 mt-1">{{ createForm.errors.full_name }}</div>
+                            </div>
+                            <div>
+                                <label for="create-phone" class="block text-xs text-slate-400 mb-1">Số điện thoại</label>
+                                <input id="create-phone" v-model="createForm.phone_number" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <div v-if="createForm.errors.phone_number" class="text-xs text-rose-400 mt-1">{{ createForm.errors.phone_number }}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label for="create-gender" class="block text-xs text-slate-400 mb-1">Giới tính</label>
+                                <select id="create-gender" v-model="createForm.gender" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500">
+                                    <option value="">-- Chọn --</option>
+                                    <option value="male">Nam</option>
+                                    <option value="female">Nữ</option>
+                                    <option value="other">Khác</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="create-dob" class="block text-xs text-slate-400 mb-1">Ngày sinh</label>
+                                <DateInput id="create-dob" v-model="createForm.date_of_birth" :has-error="!!createForm.errors.date_of_birth" />
+                                <div v-if="createForm.errors.date_of_birth" class="text-xs text-rose-400 mt-1">{{ createForm.errors.date_of_birth }}</div>
+                            </div>
+                            <div>
+                                <label for="create-contact-email" class="block text-xs text-slate-400 mb-1">Email phụ liên hệ</label>
+                                <input id="create-contact-email" v-model="createForm.contact_email" type="email" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                                <div v-if="createForm.errors.contact_email" class="text-xs text-rose-400 mt-1">{{ createForm.errors.contact_email }}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="create-address" class="block text-xs text-slate-400 mb-1">Địa chỉ thường trú</label>
+                            <input id="create-address" v-model="createForm.address" type="text" class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500" />
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+                        <button type="button" @click="closeCreateModal" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white">Hủy bỏ</button>
+                        <button type="submit" :disabled="createForm.processing" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-50">
+                            Tạo tài khoản
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit User Modal (CSM Modal) -->
+        <div v-if="isEditModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-5 animate-in fade-in duration-200">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Chỉnh Sửa Thông Tin Người Dùng</h3>
+                        <p class="text-xs text-slate-400">Cập nhật tài khoản đăng nhập và hồ sơ nhân sự</p>
+                    </div>
+                    <button @click="closeEditModal" class="text-slate-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form @submit.prevent="submitEditForm" class="space-y-4">
+                    <!-- Account Details -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                                Tên hiển thị (Username) *
+                            </label>
+                            <input
+                                v-model="editForm.name"
+                                type="text"
+                                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                            />
+                            <div v-if="editForm.errors.name" class="text-xs text-rose-400 mt-1">{{ editForm.errors.name }}</div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                                Email đăng nhập *
+                            </label>
+                            <input
+                                v-model="editForm.email"
+                                type="email"
+                                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                            />
+                            <div v-if="editForm.errors.email" class="text-xs text-rose-400 mt-1">{{ editForm.errors.email }}</div>
+                        </div>
+                    </div>
+
+                    <!-- Role & Status -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                                Vai trò hệ thống *
+                            </label>
+                            <select
+                                v-model="editForm.role"
+                                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="user">Người dùng (User)</option>
+                                <option value="admin">Quản trị viên (Admin)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                                Trạng thái tài khoản *
+                            </label>
+                            <select
+                                v-model="editForm.status"
+                                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="active">Đang hoạt động (Active)</option>
+                                <option value="suspended">Tạm khóa (Suspended)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- HRM Profile Fields -->
+                    <div class="pt-2 border-t border-slate-800 space-y-3">
+                        <div class="text-xs font-bold uppercase tracking-wider text-indigo-400">
+                            Hồ Sơ Nhân Sự (HRM Profile)
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Họ và tên đầy đủ</label>
+                                <input
+                                    v-model="editForm.full_name"
+                                    type="text"
+                                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                />
+                            </div>
+
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Số điện thoại</label>
+                                <input
+                                    v-model="editForm.phone_number"
+                                    type="text"
+                                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Giới tính</label>
+                                <select
+                                    v-model="editForm.gender"
+                                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                >
+                                    <option value="">-- Chọn --</option>
+                                    <option value="male">Nam</option>
+                                    <option value="female">Nữ</option>
+                                    <option value="other">Khác</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Ngày sinh</label>
+                                <DateInput
+                                    v-model="editForm.date_of_birth"
+                                    :has-error="!!editForm.errors.date_of_birth"
+                                />
+                                <div v-if="editForm.errors.date_of_birth" class="text-xs text-rose-400 mt-1">{{ editForm.errors.date_of_birth }}</div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Email phụ liên hệ</label>
+                                <input
+                                    v-model="editForm.contact_email"
+                                    type="email"
+                                    class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Địa chỉ thường trú</label>
+                            <input
+                                v-model="editForm.address"
+                                type="text"
+                                class="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+                        <button
+                            type="button"
+                            @click="closeEditModal"
+                            class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white"
+                        >
+                            Hủy bỏ
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="editForm.processing"
+                            class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
+                        >
+                            Lưu thông tin
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </AppLayout>

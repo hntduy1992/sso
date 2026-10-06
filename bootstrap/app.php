@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureUserCanAccessApplication;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\RequirePkceForPublicClients;
 use App\Infrastructure\Satellite\CheckTokenScope;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->web(append: [
             HandleInertiaRequests::class,
+            EnsureUserCanAccessApplication::class,
         ]);
 
         // Register named middleware aliases

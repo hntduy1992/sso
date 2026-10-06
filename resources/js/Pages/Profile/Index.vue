@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
+// import SocialProviderCard from '@/Pages/Profile/components/SocialProviderCard.vue';
+import DateInput from '@/Components/DateInput.vue';
 
 interface ProfileData {
     id: number;
@@ -15,20 +18,99 @@ interface ProfileData {
     has_password: boolean;
 }
 
+interface UserProfileData {
+    full_name: string | null;
+    date_of_birth: string | null;
+    gender: string | null;
+    phone_number: string | null;
+    contact_email: string | null;
+    address: string | null;
+    bio: string | null;
+    avatar_url: string | null;
+}
+
+interface LinkedProvider {
+    provider: string;
+    connected: boolean;
+    linked_at: string | null;
+}
+
 const props = defineProps<{
     profile: ProfileData;
+    userProfile: UserProfileData;
+    linkedProviders?: LinkedProvider[];
 }>();
 
-// Profile Form
+// ── Personal Profile Form ────────────────────────────────────────────────────
+const personalForm = useForm({
+    full_name: props.userProfile.full_name || props.profile.name,
+    date_of_birth: props.userProfile.date_of_birth || '',
+    gender: props.userProfile.gender || '',
+    phone_number: props.userProfile.phone_number || '',
+    contact_email: props.userProfile.contact_email || '',
+    address: props.userProfile.address || '',
+    bio: props.userProfile.bio || '',
+});
+
+const submitPersonal = () => {
+    personalForm.patch(route('profile.update'), { preserveScroll: true });
+};
+
+// ── Avatar Upload ────────────────────────────────────────────────────────────
+const avatarPreview = ref<string | null>(props.userProfile.avatar_url);
+const avatarFile = ref<File | null>(null);
+const avatarInput = ref<HTMLInputElement | null>(null);
+const avatarUploading = ref(false);
+
+const onAvatarChange = (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) { return; }
+    avatarFile.value = file;
+    avatarPreview.value = URL.createObjectURL(file);
+};
+
+const submitAvatar = () => {
+    if (!avatarFile.value) { return; }
+    avatarUploading.value = true;
+    const form = useForm({ avatar: avatarFile.value });
+    form.post(route('profile.avatar'), {
+        preserveScroll: true,
+        onFinish: () => { avatarUploading.value = false; },
+    });
+};
+
+// ── Social Connections (Tạm thời vô hiệu hóa theo yêu cầu) ────────────────────
+// const showUnlinkModal = ref(false);
+// const unlinkProvider = ref('');
+// const connectedCount = computed(
+//     () => (props.linkedProviders || []).filter((p) => p.connected).length,
+// );
+// const canUnlink = (provider: string): boolean => {
+//     if (props.profile.has_password) { return true; }
+//     const otherConnected = (props.linkedProviders || []).filter(
+//         (p) => p.provider !== provider && p.connected,
+//     ).length;
+//     return otherConnected > 0;
+// };
+// const requestUnlink = (provider: string) => {
+//     unlinkProvider.value = provider;
+//     showUnlinkModal.value = true;
+// };
+// const confirmUnlink = () => {
+//     router.delete(route('profile.social.destroy', unlinkProvider.value), {
+//         preserveScroll: true,
+//         onSuccess: () => { showUnlinkModal.value = false; },
+//     });
+// };
+
+// ── Account Info Form (backward compat - avatar URL field) ───────────────────
 const profileForm = useForm({
     name: props.profile.name,
     avatar_url: props.profile.avatar_url || '',
 });
 
 const submitProfile = () => {
-    profileForm.patch('/profile', {
-        preserveScroll: true,
-    });
+    profileForm.patch(route('profile.update'), { preserveScroll: true });
 };
 
 // Password Form
@@ -39,7 +121,7 @@ const passwordForm = useForm({
 });
 
 const submitPassword = () => {
-    passwordForm.put('/profile/password', {
+    passwordForm.put(route('profile.password'), {
         preserveScroll: true,
         onSuccess: () => {
             passwordForm.reset();
@@ -65,7 +147,7 @@ const startMfaSetup = async () => {
     mfaLoading.value = true;
     mfaConfirmError.value = '';
     try {
-        const response = await fetch('/profile/mfa/setup', {
+        const response = await fetch(route('profile.mfa.setup'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -93,7 +175,7 @@ const confirmMfa = async () => {
     mfaConfirmError.value = '';
 
     try {
-        const response = await fetch('/profile/mfa/confirm', {
+        const response = await fetch(route('profile.mfa.confirm'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -120,7 +202,7 @@ const confirmMfa = async () => {
 };
 
 const submitDisableMfa = () => {
-    router.delete('/profile/mfa', {
+    router.delete(route('profile.mfa.destroy'), {
         data: { password: disablePassword.value },
         preserveScroll: true,
         onSuccess: () => {
@@ -162,7 +244,192 @@ const copySecret = () => {
                 </p>
             </div>
 
-            <!-- Profile Info Section -->
+            <!-- ═══ SECTION: Hồ sơ cá nhân ══════════════════════════════════ -->
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
+                <div class="flex items-center gap-3 pb-6 border-b border-slate-800/80 mb-6">
+                    <div class="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0M9 12h.01M15 12h.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-100">Hồ sơ Cá nhân</h2>
+                        <p class="text-xs text-slate-400">Thông tin nhân sự — không dùng để đăng nhập.</p>
+                    </div>
+                </div>
+
+                <!-- Avatar section -->
+                <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8 p-4 rounded-xl bg-slate-950/40 border border-slate-800">
+                    <div class="shrink-0">
+                        <div class="w-20 h-20 rounded-2xl border-2 border-slate-700 overflow-hidden bg-slate-800 flex items-center justify-center">
+                            <img
+                                v-if="avatarPreview"
+                                :src="avatarPreview"
+                                alt="Avatar"
+                                class="w-full h-full object-cover"
+                            />
+                            <svg v-else class="w-10 h-10 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex-1 text-center sm:text-left">
+                        <p class="text-sm text-slate-300 font-medium mb-1">Ảnh đại diện</p>
+                        <p class="text-xs text-slate-500 mb-3">JPEG, PNG hoặc WebP · Tối đa 2MB</p>
+                        <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
+                            <button
+                                type="button"
+                                @click="avatarInput?.click()"
+                                class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium transition"
+                            >
+                                Chọn ảnh mới
+                            </button>
+                            <button
+                                v-if="avatarFile"
+                                type="button"
+                                :disabled="avatarUploading"
+                                @click="submitAvatar"
+                                class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition disabled:opacity-50"
+                            >
+                                {{ avatarUploading ? 'Đang tải...' : 'Lưu ảnh' }}
+                            </button>
+                        </div>
+                        <input
+                            ref="avatarInput"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            class="hidden"
+                            @change="onAvatarChange"
+                        />
+                    </div>
+                </div>
+
+                <!-- Personal fields -->
+                <form @submit.prevent="submitPersonal" class="space-y-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2">Họ và tên đầy đủ <span class="text-rose-400">*</span></label>
+                            <input
+                                id="full_name"
+                                v-model="personalForm.full_name"
+                                type="text"
+                                required
+                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition"
+                            />
+                            <p v-if="personalForm.errors.full_name" class="mt-1 text-xs text-rose-400">{{ personalForm.errors.full_name }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2">Ngày sinh</label>
+                            <DateInput
+                                id="date_of_birth"
+                                v-model="personalForm.date_of_birth"
+                                :has-error="!!personalForm.errors.date_of_birth"
+                                input-class="!py-2.5 !px-4"
+                            />
+                            <p v-if="personalForm.errors.date_of_birth" class="mt-1 text-xs text-rose-400">{{ personalForm.errors.date_of_birth }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2">Giới tính</label>
+                            <select
+                                id="gender"
+                                v-model="personalForm.gender"
+                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition"
+                            >
+                                <option value="">-- Không chọn --</option>
+                                <option value="male">Nam</option>
+                                <option value="female">Nữ</option>
+                                <option value="other">Khác</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2">Số điện thoại</label>
+                            <input
+                                id="phone_number"
+                                v-model="personalForm.phone_number"
+                                type="tel"
+                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition"
+                            />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2">Email liên hệ</label>
+                            <input
+                                id="contact_email"
+                                v-model="personalForm.contact_email"
+                                type="email"
+                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition"
+                            />
+                            <p class="mt-1 text-[11px] text-slate-500">Khác với email đăng nhập SSO.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-2">Địa chỉ</label>
+                            <input
+                                id="address"
+                                v-model="personalForm.address"
+                                type="text"
+                                class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-2">Giới thiệu bản thân</label>
+                        <textarea
+                            id="bio"
+                            v-model="personalForm.bio"
+                            rows="3"
+                            class="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:border-violet-500 focus:ring-1 focus:ring-violet-500 outline-none transition resize-none"
+                        />
+                    </div>
+                    <div class="flex justify-end pt-1">
+                        <button
+                            type="submit"
+                            :disabled="personalForm.processing"
+                            class="px-5 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-medium text-sm transition shadow-lg shadow-violet-600/20 disabled:opacity-50"
+                        >
+                            {{ personalForm.processing ? 'Đang lưu...' : 'Lưu Hồ sơ' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ═══ SECTION: Kết nối tài khoản (Tạm thời ẩn khi chưa triển khai Google / Zalo) ═══ -->
+            <!--
+            <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
+                <div class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold text-slate-100">Kết nối Tài khoản Ngoài</h2>
+                            <p class="text-xs text-slate-400">Liên kết để đăng nhập nhanh bằng Google hoặc Zalo.</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium border bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
+                        {{ connectedCount }}/{{ (linkedProviders || []).length }} đã kết nối
+                    </span>
+                </div>
+
+                <div class="space-y-3">
+                    <SocialProviderCard
+                        v-for="provider in linkedProviders"
+                        :key="provider.provider"
+                        :provider="provider"
+                        :connect-url="route('profile.social.connect', provider.provider)"
+                        :can-unlink="canUnlink(provider.provider)"
+                        @unlink="requestUnlink"
+                    />
+                </div>
+
+                <p v-if="!profile.has_password && connectedCount <= 1" class="mt-4 text-xs text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-xl p-3">
+                    ⚠️ Tài khoản này chưa đặt mật khẩu. Bạn cần giữ ít nhất một kết nối để có thể đăng nhập. Hãy đặt mật khẩu trong phần bên dưới để tăng tính bảo mật.
+                </p>
+            </div>
+            -->
+
+            <!-- ═══ SECTION: Thông tin Tài khoản (Account Info) ════════════ -->
+
             <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
                 <div class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-6">
                     <div>
@@ -496,4 +763,41 @@ const copySecret = () => {
             </div>
         </div>
     </AppLayout>
+
+    <!-- Modal: Xác nhận Hủy liên kết Provider (Tạm thời ẩn) -->
+    <!--
+    <div v-if="showUnlinkModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5">
+            <div class="flex items-center gap-3 text-rose-400">
+                <div class="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+                    </svg>
+                </div>
+                <h3 class="text-base font-bold text-slate-100">Hủy liên kết {{ unlinkProvider }}</h3>
+            </div>
+            <p class="text-xs text-slate-400">
+                Bạn có chắc muốn hủy liên kết tài khoản <strong class="text-slate-200">{{ unlinkProvider }}</strong>?
+                Sau khi hủy, bạn sẽ không thể đăng nhập bằng provider này nữa.
+            </p>
+            <div class="flex gap-3">
+                <button
+                    @click="showUnlinkModal = false"
+                    type="button"
+                    class="flex-1 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium transition"
+                >
+                    Hủy bỏ
+                </button>
+                <button
+                    @click="confirmUnlink"
+                    type="button"
+                    class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold transition shadow-lg shadow-rose-600/25"
+                >
+                    Xác nhận Hủy liên kết
+                </button>
+            </div>
+        </div>
+    </div>
+    -->
 </template>
+

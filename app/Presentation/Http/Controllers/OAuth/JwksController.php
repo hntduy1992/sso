@@ -8,8 +8,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use phpseclib3\Crypt\RSA;
-use phpseclib3\Crypt\RSA\PublicKey;
 
 /**
  * JWKS (JSON Web Key Set) endpoint
@@ -49,12 +47,6 @@ class JwksController extends Controller
         if (! $publicKeyContent) {
             abort(500, 'Public key not found. Run: php artisan passport:keys');
         }
-
-        /** @var PublicKey $key */
-        $key = RSA::load($publicKeyContent);
-
-        // Extract RSA components for JWK format
-        $n = $key->getPublicKey()->toString('PKCS8');
 
         // Parse the modulus and exponent using OpenSSL
         $details = openssl_pkey_get_details(

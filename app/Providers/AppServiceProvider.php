@@ -2,8 +2,12 @@
 
 namespace App\Providers;
 
+use App\Domain\User\Repositories\UserPositionRepositoryInterface;
+use App\Domain\User\Repositories\UserProfileRepositoryInterface;
 use App\Domain\User\Repositories\UserRepositoryInterface;
 use App\Infrastructure\OAuth\RotatingRefreshTokenRepository;
+use App\Infrastructure\User\Repositories\EloquentUserPositionRepository;
+use App\Infrastructure\User\Repositories\EloquentUserProfileRepository;
 use App\Infrastructure\User\Repositories\EloquentUserRepository;
 use App\Models\OAuthAccessToken;
 use App\Models\OAuthRefreshToken;
@@ -24,6 +28,16 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(
             UserRepositoryInterface::class,
             EloquentUserRepository::class
+        );
+
+        $this->app->bind(
+            UserProfileRepositoryInterface::class,
+            EloquentUserProfileRepository::class
+        );
+
+        $this->app->bind(
+            UserPositionRepositoryInterface::class,
+            EloquentUserPositionRepository::class
         );
 
         // Bind custom RefreshTokenRepository for rotation and revocation family support
@@ -110,6 +124,8 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configurePassport(): void
     {
+        // Register custom authorization view for Passport v13
+        Passport::authorizationView('passport.authorize');
         // Use custom token models to inject claims and support revocation families
         Passport::useTokenModel(OAuthAccessToken::class);
         Passport::useRefreshTokenModel(OAuthRefreshToken::class);

@@ -1,12 +1,18 @@
 <?php
 
 use App\Http\Middleware\RequirePkceForPublicClients;
+use App\Presentation\Http\Controllers\Admin\ApplicationAccessController;
 use App\Presentation\Http\Controllers\Admin\AuditLogController;
 use App\Presentation\Http\Controllers\Admin\DashboardController;
+use App\Presentation\Http\Controllers\Admin\DepartmentController;
+use App\Presentation\Http\Controllers\Admin\UserImportController;
+use App\Presentation\Http\Controllers\Admin\UserManagementController;
 use App\Presentation\Http\Controllers\Auth\AuthController;
 use App\Presentation\Http\Controllers\Auth\MfaChallengeController;
 use App\Presentation\Http\Controllers\Auth\SocialAuthController;
 use App\Presentation\Http\Controllers\Developer\ClientController;
+use App\Presentation\Http\Controllers\OAuth\CustomApproveAuthorizationController;
+use App\Presentation\Http\Controllers\OAuth\CustomDenyAuthorizationController;
 use App\Presentation\Http\Controllers\OAuth\IntrospectionController;
 use App\Presentation\Http\Controllers\OAuth\JwksController;
 use App\Presentation\Http\Controllers\OAuth\OidcDiscoveryController;
@@ -17,6 +23,7 @@ use App\Presentation\Http\Controllers\Profile\AuthorizedAppsController;
 use App\Presentation\Http\Controllers\Profile\MfaController;
 use App\Presentation\Http\Controllers\Profile\ProfileController;
 use App\Presentation\Http\Controllers\Profile\SessionManagementController;
+use App\Presentation\Http\Controllers\Profile\SocialConnectionController;
 use Illuminate\Support\Facades\Route;
 
 // -------------------------------------------------------------------------
@@ -86,14 +93,20 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:mfa.challenge')
         ->name('mfa.challenge.store');
 
-    // Social Login — Google & GitHub
-    Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');
-    Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
+    // Tạm thời chưa triển khai xác thực bằng Google / Zalo (Social Login)
+    // Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');
+    // Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
 });
 
 // -------------------------------------------------------------------------
 // OAuth2 Authorization with PKCE enforcement
 // -------------------------------------------------------------------------
+// Custom authorization approval/denial supporting AJAX for sandboxed iframes
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/oauth/authorize', [CustomApproveAuthorizationController::class, 'approve'])->name('passport.authorizations.approve');
+    Route::delete('/oauth/authorize', [CustomDenyAuthorizationController::class, 'deny'])->name('passport.authorizations.deny');
+});
+
 Route::middleware([RequirePkceForPublicClients::class])->group(function () {
     // Passport registers its own route for /oauth/authorize
     // This middleware wraps it to add PKCE enforcement before Passport handles it
@@ -108,7 +121,16 @@ Route::middleware('auth')->group(function () {
     // User Portal: Profile & Security
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.avatar');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+
+    // User Portal: Social Provider Connections (Tạm thời vô hiệu hóa)
+    // Route::get('/profile/social-connections/{provider}/connect', [SocialConnectionController::class, 'connect'])
+    //     ->name('profile.social.connect');
+    // Route::get('/profile/social-connections/{provider}/callback', [SocialConnectionController::class, 'callback'])
+    //     ->name('profile.social.callback');
+    // Route::delete('/profile/social-connections/{provider}', [SocialConnectionController::class, 'destroy'])
+    //     ->name('profile.social.destroy');
 
     // User Portal: Two-Factor Authentication (MFA)
     Route::post('/profile/mfa/setup', [MfaController::class, 'setup'])->name('profile.mfa.setup');
@@ -138,4 +160,33 @@ Route::middleware('auth')->group(function () {
 
     // Admin Panel: Audit Logs
     Route::get('/admin/audit-logs', [AuditLogController::class, 'index'])->name('admin.audit-logs.index');
+
+    // Admin Panel: Application Access (who may sign in to each OAuth app)
+    Route::get('/admin/application-access', [ApplicationAccessController::class, 'index'])->name('admin.application-access.index');
+    Route::post('/admin/application-access/{clientId}/users', [ApplicationAccessController::class, 'grantUser'])->name('admin.application-access.grant-user');
+    Route::post('/admin/application-access/{clientId}/departments', [ApplicationAccessController::class, 'grantDepartment'])->name('admin.application-access.grant-department');
+    Route::delete('/admin/application-access/{clientId}/grants/{grantId}', [ApplicationAccessController::class, 'revoke'])->name('admin.application-access.revoke');
+
+    // Admin Panel: HRM & Departments
+    Route::get('/admin/departments', [DepartmentController::class, 'index'])->name('admin.departments.index');
+    Route::post('/admin/departments', [DepartmentController::class, 'store'])->name('admin.departments.store');
+    Route::put('/admin/departments/{department}', [DepartmentController::class, 'update'])->name('admin.departments.update');
+    Route::delete('/admin/departments/{department}', [DepartmentController::class, 'destroy'])->name('admin.departments.destroy');
+
+    // Admin Panel: Create Users (single & bulk import) — must be declared before /admin/users/{id}
+    Route::post('/admin/users', [UserManagementController::class, 'store'])->name('admin.users.store');
+    Route::get('/admin/users/import', [UserImportController::class, 'create'])->name('admin.users.import.create');
+    Route::post('/admin/users/import/validate', [UserImportController::class, 'validateRows'])->name('admin.users.import.validate');
+    Route::post('/admin/users/import', [UserImportController::class, 'store'])->name('admin.users.import.store');
+
+    // Admin Panel: User HRM Profile & Positions
+    Route::get('/admin/users/{id}', [UserManagementController::class, 'show'])->name('admin.users.show');
+    Route::put('/admin/users/{id}', [UserManagementController::class, 'update'])->name('admin.users.update');
+    Route::delete('/admin/users/{id}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+    Route::post('/admin/users/{id}/restore', [UserManagementController::class, 'restore'])->name('admin.users.restore');
+    Route::delete('/admin/users/{id}/force', [UserManagementController::class, 'forceDelete'])->name('admin.users.force-delete');
+    Route::post('/admin/users/{id}/positions', [UserManagementController::class, 'assignPosition'])->name('admin.users.positions.assign');
+    Route::delete('/admin/users/{id}/positions/{positionId}', [UserManagementController::class, 'terminatePosition'])->name('admin.users.positions.terminate');
+    Route::post('/admin/users/{id}/reset-password', [UserManagementController::class, 'resetPassword'])->name('admin.users.reset-password');
+    Route::post('/admin/users/{id}/reset-mfa', [UserManagementController::class, 'resetMfa'])->name('admin.users.reset-mfa');
 });

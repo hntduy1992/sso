@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 interface AuthorizedApp {
@@ -20,7 +21,7 @@ const revokeApp = (app: AuthorizedApp) => {
         return;
     }
 
-    router.delete(`/profile/authorized-apps/${app.id}`, {
+    router.delete(route('profile.authorized-apps.destroy', app.id), {
         preserveScroll: true,
     });
 };

@@ -6,7 +6,11 @@ namespace Tests\Feature;
 
 use App\Application\OAuth\Jobs\SendBackchannelLogoutJob;
 use App\Infrastructure\Satellite\CheckTokenScope;
+use App\Models\Department;
+use App\Models\PositionType;
 use App\Models\User;
+use App\Models\UserPosition;
+use App\Models\UserProfile;
 use App\Models\UserSession;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -73,6 +77,62 @@ class SatelliteIntegrationTest extends TestCase
                 'name' => 'John Doe',
                 'email' => 'john@satellite.local',
                 'roles' => ['user'],
+            ]);
+    }
+
+    public function test_userinfo_returns_department_and_hrm_profile_data(): void
+    {
+        UserProfile::create([
+            'user_id' => $this->user->id,
+            'full_name' => 'John Doe',
+            'phone_number' => '0987654321',
+            'gender' => 'male',
+            'date_of_birth' => '1990-01-15',
+            'address' => '123 Main St, Hanoi',
+        ]);
+
+        $dept = Department::create([
+            'name' => 'Tổ Kế toán',
+            'code' => 'TO_KT',
+            'type' => 'specialized_team',
+            'is_active' => true,
+            'display_order' => 1,
+        ]);
+
+        $posType = PositionType::create([
+            'code' => 'TEAM_LEAD',
+            'name' => 'Tổ trưởng',
+            'level' => 3,
+            'applicable_to' => 'specialized_team',
+            'is_active' => true,
+        ]);
+
+        UserPosition::create([
+            'user_id' => $this->user->id,
+            'department_id' => $dept->id,
+            'position_type_id' => $posType->id,
+            'started_at' => '2023-01-01',
+            'is_primary' => true,
+        ]);
+
+        Passport::actingAs($this->user, ['openid', 'profile', 'email']);
+
+        $response = $this->getJson('/oauth/userinfo');
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'sub' => (string) $this->user->id,
+                'phone_number' => '0987654321',
+                'gender' => 'male',
+                'date_of_birth' => '1990-01-15',
+                'department' => [
+                    'name' => 'Tổ Kế toán',
+                    'code' => 'TO_KT',
+                ],
+                'position' => [
+                    'name' => 'Tổ trưởng',
+                    'code' => 'TEAM_LEAD',
+                ],
             ]);
     }
 
