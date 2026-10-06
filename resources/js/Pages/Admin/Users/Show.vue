@@ -183,6 +183,28 @@ const submitResetPassword = () => {
         },
     });
 };
+
+// Reset 2FA Modal
+const isResetMfaModalOpen = ref(false);
+const resetMfaForm = useForm({
+    reason: '',
+});
+
+const openResetMfaModal = () => {
+    resetMfaForm.reset();
+    resetMfaForm.clearErrors();
+    isResetMfaModalOpen.value = true;
+};
+
+const submitResetMfa = () => {
+    resetMfaForm.post(route('admin.users.reset-mfa', props.targetUser.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            isResetMfaModalOpen.value = false;
+            resetMfaForm.reset();
+        },
+    });
+};
 </script>
 
 <template>
@@ -270,6 +292,18 @@ const submitResetPassword = () => {
                         </svg>
                         Đặt lại mật khẩu
                     </button>
+
+                    <button
+                        v-if="targetUser.mfa_enabled"
+                        @click="openResetMfaModal"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-sm font-medium transition shadow-sm"
+                        title="Hủy kích hoạt xác thực 2 bước cho tài khoản này"
+                    >
+                        <svg class="w-4 h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Xóa 2FA
+                    </button>
                 </div>
             </div>
 
@@ -322,8 +356,8 @@ const submitResetPassword = () => {
                         </div>
                     </div>
 
-                    <!-- Linked Social Accounts -->
-                    <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
+                    <!-- Linked Social Accounts (Chỉ hiển thị khi có liên kết) -->
+                    <div v-if="socialAccounts && socialAccounts.length > 0" class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 space-y-4">
                         <h2 class="text-base font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
                             <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -331,7 +365,7 @@ const submitResetPassword = () => {
                             Tài khoản Liên kết (SSO)
                         </h2>
 
-                        <div v-if="socialAccounts.length > 0" class="space-y-2">
+                        <div class="space-y-2">
                             <div
                                 v-for="sa in socialAccounts"
                                 :key="sa.provider"
@@ -340,9 +374,6 @@ const submitResetPassword = () => {
                                 <span class="font-semibold uppercase text-slate-200">{{ sa.provider }}</span>
                                 <span class="text-slate-400">Liên kết: {{ sa.created_at }}</span>
                             </div>
-                        </div>
-                        <div v-else class="text-xs text-slate-500 italic py-2">
-                            Chưa liên kết tài khoản mạng xã hội nào
                         </div>
                     </div>
                 </div>
@@ -737,6 +768,74 @@ const submitResetPassword = () => {
                             class="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-600 hover:bg-amber-500 text-white transition disabled:opacity-50"
                         >
                             Cập nhật & Đăng xuất
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Reset 2FA Modal -->
+        <div v-if="isResetMfaModalOpen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in duration-200">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-white">Xóa Xác Thực 2 Bước (2FA)</h3>
+                            <p class="text-xs text-slate-400">Tài khoản: {{ targetUser.name }} ({{ targetUser.email }})</p>
+                        </div>
+                    </div>
+                    <button @click="isResetMfaModalOpen = false" class="text-slate-400 hover:text-white">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 space-y-1.5">
+                    <p class="font-semibold flex items-center gap-1.5">
+                        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Lưu ý quan trọng
+                    </p>
+                    <p>
+                        Thao tác này sẽ hủy liên kết TOTP (Google Authenticator) và xóa toàn bộ mã phục hồi dự phòng của người dùng. Sau khi xóa, người dùng có thể đăng nhập bình thường chỉ bằng mật khẩu tài khoản.
+                    </p>
+                </div>
+
+                <form @submit.prevent="submitResetMfa" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                            Lý do xóa 2FA (Tùy chọn - Lưu vết kiểm toán)
+                        </label>
+                        <input
+                            v-model="resetMfaForm.reason"
+                            type="text"
+                            placeholder="Ví dụ: Người dùng mất điện thoại, cài lại máy..."
+                            class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-rose-500"
+                        />
+                        <div v-if="resetMfaForm.errors.reason" class="text-xs text-rose-400 mt-1">{{ resetMfaForm.errors.reason }}</div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                        <button
+                            type="button"
+                            @click="isResetMfaModalOpen = false"
+                            class="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white"
+                        >
+                            Hủy bỏ
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="resetMfaForm.processing"
+                            class="px-5 py-2 rounded-xl text-sm font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30 transition disabled:opacity-50"
+                        >
+                            {{ resetMfaForm.processing ? 'Đang xử lý...' : 'Xác nhận Xóa 2FA' }}
                         </button>
                     </div>
                 </form>
