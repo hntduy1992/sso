@@ -518,29 +518,42 @@ const submitCreateForm = () => {
                                     </span>
                                 </td>
 
-                                <!-- Status Badge -->
+                                <!-- Status Badge & 2FA -->
                                 <td class="px-5 py-3.5">
-                                    <span
-                                        v-if="user.deleted_at"
-                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/15 text-rose-300 border border-rose-500/30"
-                                    >
-                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
-                                        Đã xóa tạm
-                                    </span>
-                                    <span
-                                        v-else-if="user.status === 'active'"
-                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                                    >
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                        Hoạt động
-                                    </span>
-                                    <span
-                                        v-else
-                                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                                    >
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                        Bị khóa
-                                    </span>
+                                    <div class="flex flex-col gap-1 items-start">
+                                        <span
+                                            v-if="user.deleted_at"
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/15 text-rose-300 border border-rose-500/30"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>
+                                            Đã xóa tạm
+                                        </span>
+                                        <span
+                                            v-else-if="user.status === 'active'"
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            Hoạt động
+                                        </span>
+                                        <span
+                                            v-else
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                                        >
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                            Bị khóa
+                                        </span>
+
+                                        <span
+                                            v-if="user.mfa_enabled"
+                                            class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"
+                                            title="Đã bật xác thực 2 bước (TOTP)"
+                                        >
+                                            <svg class="w-2.5 h-2.5 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                            </svg>
+                                            2FA
+                                        </span>
+                                    </div>
                                 </td>
 
                                 <!-- Created At -->

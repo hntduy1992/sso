@@ -22,6 +22,7 @@ export interface User {
     email: string;
     role: 'admin' | 'user';
     status: 'active' | 'suspended';
+    mfa_enabled?: boolean;
     created_at?: string;
     updated_at?: string;
     active_positions?: UserPositionSummary[];

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Presentation\Http\Controllers\Admin;
 
+use App\Application\User\UseCases\AdminResetMfaUseCase;
 use App\Application\User\UseCases\AdminResetPasswordUseCase;
 use App\Application\User\UseCases\AssignUserPositionUseCase;
 use App\Application\User\UseCases\CreateUserUseCase;
@@ -20,6 +21,7 @@ use App\Models\User;
 use App\Models\UserPosition;
 use App\Models\UserProfile;
 use App\Models\UserSession;
+use App\Presentation\Http\Requests\Admin\AdminResetMfaRequest;
 use App\Presentation\Http\Requests\Admin\AdminResetPasswordRequest;
 use App\Presentation\Http\Requests\Admin\AssignPositionRequest;
 use App\Presentation\Http\Requests\Admin\StoreUserRequest;
@@ -188,6 +190,29 @@ class UserManagementController extends Controller
 
             return redirect()->back()
                 ->with('success', 'Đã đặt lại mật khẩu thành công và thu hồi tất cả phiên đăng nhập của người dùng.');
+        } catch (UserNotFoundException $e) {
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Admin disables / resets 2FA for a target user.
+     */
+    public function resetMfa(
+        int $id,
+        AdminResetMfaRequest $request,
+        AdminResetMfaUseCase $useCase
+    ): RedirectResponse {
+        try {
+            $useCase->execute(
+                targetUserId: $id,
+                reason: $request->string('reason')->toString() ?: null,
+                adminUser: $request->user(),
+            );
+
+            return redirect()->back()
+                ->with('success', 'Đã xóa xác thực 2 bước (2FA) của người dùng thành công.');
         } catch (UserNotFoundException $e) {
             return redirect()->back()
                 ->with('error', $e->getMessage());

@@ -64,9 +64,21 @@ class User extends Authenticatable
         return $this->status === 'suspended';
     }
 
+    /**
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'mfa_enabled',
+    ];
+
     public function hasMfaEnabled(): bool
     {
-        return $this->two_factor_enabled && $this->two_factor_confirmed_at !== null;
+        return (bool) $this->two_factor_enabled && $this->two_factor_confirmed_at !== null;
+    }
+
+    public function getMfaEnabledAttribute(): bool
+    {
+        return $this->hasMfaEnabled();
     }
 
     /**

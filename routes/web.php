@@ -93,9 +93,9 @@ Route::middleware('guest')->group(function () {
         ->middleware('throttle:mfa.challenge')
         ->name('mfa.challenge.store');
 
-    // Social Login — Google & GitHub
-    Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');
-    Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
+    // Tạm thời chưa triển khai xác thực bằng Google / Zalo (Social Login)
+    // Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('social.redirect');
+    // Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('social.callback');
 });
 
 // -------------------------------------------------------------------------
@@ -124,13 +124,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/profile/avatar', [ProfileController::class, 'uploadAvatar'])->name('profile.avatar');
     Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
-    // User Portal: Social Provider Connections (link / unlink when already authenticated)
-    Route::get('/profile/social-connections/{provider}/connect', [SocialConnectionController::class, 'connect'])
-        ->name('profile.social.connect');
-    Route::get('/profile/social-connections/{provider}/callback', [SocialConnectionController::class, 'callback'])
-        ->name('profile.social.callback');
-    Route::delete('/profile/social-connections/{provider}', [SocialConnectionController::class, 'destroy'])
-        ->name('profile.social.destroy');
+    // User Portal: Social Provider Connections (Tạm thời vô hiệu hóa)
+    // Route::get('/profile/social-connections/{provider}/connect', [SocialConnectionController::class, 'connect'])
+    //     ->name('profile.social.connect');
+    // Route::get('/profile/social-connections/{provider}/callback', [SocialConnectionController::class, 'callback'])
+    //     ->name('profile.social.callback');
+    // Route::delete('/profile/social-connections/{provider}', [SocialConnectionController::class, 'destroy'])
+    //     ->name('profile.social.destroy');
 
     // User Portal: Two-Factor Authentication (MFA)
     Route::post('/profile/mfa/setup', [MfaController::class, 'setup'])->name('profile.mfa.setup');
@@ -188,4 +188,5 @@ Route::middleware('auth')->group(function () {
     Route::post('/admin/users/{id}/positions', [UserManagementController::class, 'assignPosition'])->name('admin.users.positions.assign');
     Route::delete('/admin/users/{id}/positions/{positionId}', [UserManagementController::class, 'terminatePosition'])->name('admin.users.positions.terminate');
     Route::post('/admin/users/{id}/reset-password', [UserManagementController::class, 'resetPassword'])->name('admin.users.reset-password');
+    Route::post('/admin/users/{id}/reset-mfa', [UserManagementController::class, 'resetMfa'])->name('admin.users.reset-mfa');
 });
