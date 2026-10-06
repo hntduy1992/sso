@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import DateInput from '@/Components/DateInput.vue';
 import { formatToDisplayDate } from '@/utils/date';
@@ -125,7 +126,7 @@ const openAssignModal = () => {
 };
 
 const submitAssign = () => {
-    assignForm.post(`/admin/users/${props.targetUser.id}/positions`, {
+    assignForm.post(route('admin.users.positions.assign', props.targetUser.id), {
         preserveScroll: true,
         onSuccess: () => {
             isAssignModalOpen.value = false;
@@ -150,7 +151,7 @@ const openTerminateModal = (pos: PositionItem) => {
 const submitTerminate = () => {
     if (!positionToTerminate.value) return;
 
-    terminateForm.delete(`/admin/users/${props.targetUser.id}/positions/${positionToTerminate.value.id}`, {
+    terminateForm.delete(route('admin.users.positions.terminate', { id: props.targetUser.id, positionId: positionToTerminate.value.id }), {
         preserveScroll: true,
         onSuccess: () => {
             isTerminateModalOpen.value = false;
@@ -174,7 +175,7 @@ const openResetPasswordModal = () => {
 };
 
 const submitResetPassword = () => {
-    resetPasswordForm.post(`/admin/users/${props.targetUser.id}/reset-password`, {
+    resetPasswordForm.post(route('admin.users.reset-password', props.targetUser.id), {
         preserveScroll: true,
         onSuccess: () => {
             isResetPasswordModalOpen.value = false;
@@ -191,7 +192,7 @@ const submitResetPassword = () => {
         <div class="space-y-8 max-w-7xl mx-auto pb-12">
             <!-- Breadcrumbs -->
             <div class="flex items-center gap-2 text-xs text-slate-400">
-                <Link href="/dashboard" class="hover:text-slate-200 transition">Quản lý Users</Link>
+                <Link :href="route('dashboard')" class="hover:text-slate-200 transition">Quản lý Users</Link>
                 <span>/</span>
                 <span class="text-slate-200 font-medium">{{ targetUser.name }}</span>
             </div>

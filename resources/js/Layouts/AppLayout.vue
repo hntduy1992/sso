@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import type { PageProps } from '@/types';
 
 const props = defineProps<{
@@ -26,7 +27,7 @@ const toggleSidebar = () => {
 };
 
 const handleLogout = () => {
-    router.post('/logout');
+    router.post(route('logout'));
 };
 
 // Compute breadcrumb path from component name
@@ -34,56 +35,56 @@ const breadcrumbs = computed(() => {
     const comp = page.component;
     if (comp === 'Dashboard') {
         return [
-            { label: 'Hệ thống CSM', href: '/dashboard' },
-            { label: 'Quản lý Người Dùng', href: '/dashboard' },
+            { label: 'Hệ thống CSM', href: route('dashboard') },
+            { label: 'Quản lý Người Dùng', href: route('dashboard') },
         ];
     }
     if (comp === 'Admin/Departments/Index') {
         return [
-            { label: 'Hệ thống CSM', href: '/dashboard' },
-            { label: 'Cơ cấu Tổ chức & HRM', href: '/admin/departments' },
+            { label: 'Hệ thống CSM', href: route('dashboard') },
+            { label: 'Cơ cấu Tổ chức & HRM', href: route('admin.departments.index') },
         ];
     }
     if (comp === 'Admin/Users/Import') {
         return [
-            { label: 'Hệ thống CSM', href: '/dashboard' },
-            { label: 'Quản lý Người Dùng', href: '/dashboard' },
-            { label: 'Import từ Excel', href: '/admin/users/import' },
+            { label: 'Hệ thống CSM', href: route('dashboard') },
+            { label: 'Quản lý Người Dùng', href: route('dashboard') },
+            { label: 'Import từ Excel', href: route('admin.users.import.create') },
         ];
     }
     if (comp === 'Admin/Users/Show') {
         return [
-            { label: 'Hệ thống CSM', href: '/dashboard' },
-            { label: 'Quản lý Người Dùng', href: '/dashboard' },
+            { label: 'Hệ thống CSM', href: route('dashboard') },
+            { label: 'Quản lý Người Dùng', href: route('dashboard') },
             { label: props.title || 'Chi tiết Hồ sơ', href: '#' },
         ];
     }
     if (comp === 'Admin/AuditLogs') {
         return [
-            { label: 'Hệ thống CSM', href: '/dashboard' },
-            { label: 'Nhật ký Kiểm toán', href: '/admin/audit-logs' },
+            { label: 'Hệ thống CSM', href: route('dashboard') },
+            { label: 'Nhật ký Kiểm toán', href: route('admin.audit-logs.index') },
         ];
     }
     if (comp === 'Admin/ApplicationAccess/Index') {
         return [
-            { label: 'Hệ thống CSM', href: '/dashboard' },
-            { label: 'Quyền truy cập ứng dụng', href: '/admin/application-access' },
+            { label: 'Hệ thống CSM', href: route('dashboard') },
+            { label: 'Quyền truy cập ứng dụng', href: route('admin.application-access.index') },
         ];
     }
     if (comp === 'Developer/Clients') {
         return [
-            { label: 'Cổng Ứng dụng', href: '/developer/clients' },
-            { label: 'OAuth Clients', href: '/developer/clients' },
+            { label: 'Cổng Ứng dụng', href: route('developer.clients.index') },
+            { label: 'OAuth Clients', href: route('developer.clients.index') },
         ];
     }
     if (comp.startsWith('Profile/')) {
         return [
-            { label: 'Tài khoản', href: '/profile' },
+            { label: 'Tài khoản', href: route('profile.index') },
             { label: props.title || 'Hồ sơ & Bảo mật', href: '#' },
         ];
     }
     return [
-        { label: 'Hệ thống', href: '/dashboard' },
+        { label: 'Hệ thống', href: route('dashboard') },
         { label: props.title || 'Trang chủ', href: '#' },
     ];
 });
@@ -102,7 +103,7 @@ const breadcrumbs = computed(() => {
         >
             <!-- Sidebar Header & Brand -->
             <div class="h-16 px-4 flex items-center justify-between border-b border-slate-800/80">
-                <Link href="/dashboard" class="flex items-center gap-3 overflow-hidden group">
+                <Link :href="route('dashboard')" class="flex items-center gap-3 overflow-hidden group">
                     <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-[1px] shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/35 transition-all duration-300">
                         <div class="w-full h-full bg-slate-950 rounded-xl flex items-center justify-center">
                             <svg class="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,7 +135,7 @@ const breadcrumbs = computed(() => {
 
                     <!-- Quản lý Users -->
                     <Link
-                        href="/dashboard"
+                        :href="route('dashboard')"
                         :title="sidebarCollapsed ? 'Quản lý Người Dùng' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -151,7 +152,7 @@ const breadcrumbs = computed(() => {
 
                     <!-- Cơ cấu Tổ chức & HRM -->
                     <Link
-                        href="/admin/departments"
+                        :href="route('admin.departments.index')"
                         :title="sidebarCollapsed ? 'Cơ cấu Tổ chức & HRM' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -168,7 +169,7 @@ const breadcrumbs = computed(() => {
 
                     <!-- Quyền truy cập ứng dụng -->
                     <Link
-                        href="/admin/application-access"
+                        :href="route('admin.application-access.index')"
                         :title="sidebarCollapsed ? 'Quyền truy cập ứng dụng' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -185,7 +186,7 @@ const breadcrumbs = computed(() => {
 
                     <!-- Audit Logs -->
                     <Link
-                        href="/admin/audit-logs"
+                        :href="route('admin.audit-logs.index')"
                         :title="sidebarCollapsed ? 'Nhật ký Kiểm toán' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -208,7 +209,7 @@ const breadcrumbs = computed(() => {
                     </div>
 
                     <Link
-                        href="/developer/clients"
+                        :href="route('developer.clients.index')"
                         :title="sidebarCollapsed ? 'OAuth Clients' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -231,7 +232,7 @@ const breadcrumbs = computed(() => {
                     </div>
 
                     <Link
-                        href="/profile"
+                        :href="route('profile.index')"
                         :title="sidebarCollapsed ? 'Hồ sơ & 2FA' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -247,7 +248,7 @@ const breadcrumbs = computed(() => {
                     </Link>
 
                     <Link
-                        href="/profile/sessions"
+                        :href="route('profile.sessions')"
                         :title="sidebarCollapsed ? 'Phiên đăng nhập' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -263,7 +264,7 @@ const breadcrumbs = computed(() => {
                     </Link>
 
                     <Link
-                        href="/profile/authorized-apps"
+                        :href="route('profile.authorized-apps')"
                         :title="sidebarCollapsed ? 'Ứng dụng liên kết' : undefined"
                         :class="[
                             'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group',
@@ -303,7 +304,7 @@ const breadcrumbs = computed(() => {
 
                 <!-- Current User Mini Card -->
                 <div v-if="page.props.auth?.user" class="flex items-center gap-3 p-2 rounded-xl bg-slate-900/60 border border-slate-800">
-                    <Link href="/profile" class="flex items-center gap-2.5 overflow-hidden flex-1">
+                    <Link :href="route('profile.index')" class="flex items-center gap-2.5 overflow-hidden flex-1">
                         <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-xs text-white shrink-0">
                             {{ page.props.auth.user.name.charAt(0).toUpperCase() }}
                         </div>
@@ -346,29 +347,29 @@ const breadcrumbs = computed(() => {
 
                     <nav class="space-y-1 text-sm">
                         <template v-if="page.props.auth?.user?.role === 'admin'">
-                            <Link href="/dashboard" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                            <Link :href="route('dashboard')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                                 Quản lý Users
                             </Link>
-                            <Link href="/admin/departments" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                            <Link :href="route('admin.departments.index')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                                 Cơ cấu & HRM
                             </Link>
-                            <Link href="/admin/application-access" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                            <Link :href="route('admin.application-access.index')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                                 Quyền truy cập ứng dụng
                             </Link>
-                            <Link href="/admin/audit-logs" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                            <Link :href="route('admin.audit-logs.index')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                                 Nhật ký Audit Logs
                             </Link>
                         </template>
-                        <Link href="/developer/clients" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                        <Link :href="route('developer.clients.index')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                             Ứng dụng OAuth
                         </Link>
-                        <Link href="/profile" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                        <Link :href="route('profile.index')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                             Hồ sơ & 2FA
                         </Link>
-                        <Link href="/profile/sessions" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                        <Link :href="route('profile.sessions')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                             Phiên hoạt động
                         </Link>
-                        <Link href="/profile/authorized-apps" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
+                        <Link :href="route('profile.authorized-apps')" @click="mobileMenuOpen = false" class="block px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800">
                             Ứng dụng đã duyệt
                         </Link>
                     </nav>
@@ -430,7 +431,7 @@ const breadcrumbs = computed(() => {
                     </div>
 
                     <div v-if="page.props.auth?.user" class="flex items-center gap-3 pl-3 border-l border-slate-800">
-                        <Link href="/profile" class="flex items-center gap-2.5 group">
+                        <Link :href="route('profile.index')" class="flex items-center gap-2.5 group">
                             <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-xs text-white ring-2 ring-transparent group-hover:ring-indigo-500/50 transition">
                                 {{ page.props.auth.user.name.charAt(0).toUpperCase() }}
                             </div>

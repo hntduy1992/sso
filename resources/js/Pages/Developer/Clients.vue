@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 interface ClientItem {
@@ -32,7 +33,7 @@ const createForm = useForm({
 });
 
 const submitCreate = () => {
-    createForm.post('/developer/clients', {
+    createForm.post(route('developer.clients.store'), {
         preserveScroll: true,
         onSuccess: () => {
             showCreateModal.value = false;
@@ -63,7 +64,7 @@ const openEditModal = (client: ClientItem) => {
 const submitEdit = () => {
     if (!editingClient.value) return;
 
-    editForm.put(`/developer/clients/${editingClient.value.id}`, {
+    editForm.put(route('developer.clients.update', editingClient.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             showEditModal.value = false;
@@ -78,7 +79,7 @@ const regenerateSecret = (client: ClientItem) => {
         return;
     }
 
-    router.post(`/developer/clients/${client.id}/secret`, {}, {
+    router.post(route('developer.clients.secret', client.id), {}, {
         preserveScroll: true,
     });
 };
@@ -89,7 +90,7 @@ const revokeClient = (client: ClientItem) => {
         return;
     }
 
-    router.delete(`/developer/clients/${client.id}`, {
+    router.delete(route('developer.clients.destroy', client.id), {
         preserveScroll: true,
     });
 };

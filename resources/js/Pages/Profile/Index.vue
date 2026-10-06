@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SocialProviderCard from '@/Pages/Profile/components/SocialProviderCard.vue';
 import DateInput from '@/Components/DateInput.vue';
@@ -52,7 +53,7 @@ const personalForm = useForm({
 });
 
 const submitPersonal = () => {
-    personalForm.patch('/profile', { preserveScroll: true });
+    personalForm.patch(route('profile.update'), { preserveScroll: true });
 };
 
 // ── Avatar Upload ────────────────────────────────────────────────────────────
@@ -72,7 +73,7 @@ const submitAvatar = () => {
     if (!avatarFile.value) { return; }
     avatarUploading.value = true;
     const form = useForm({ avatar: avatarFile.value });
-    form.post('/profile/avatar', {
+    form.post(route('profile.avatar'), {
         preserveScroll: true,
         onFinish: () => { avatarUploading.value = false; },
     });
@@ -104,7 +105,7 @@ const requestUnlink = (provider: string) => {
 };
 
 const confirmUnlink = () => {
-    router.delete(`/profile/social-connections/${unlinkProvider.value}`, {
+    router.delete(route('profile.social.destroy', unlinkProvider.value), {
         preserveScroll: true,
         onSuccess: () => { showUnlinkModal.value = false; },
     });
@@ -117,7 +118,7 @@ const profileForm = useForm({
 });
 
 const submitProfile = () => {
-    profileForm.patch('/profile', { preserveScroll: true });
+    profileForm.patch(route('profile.update'), { preserveScroll: true });
 };
 
 // Password Form
@@ -128,7 +129,7 @@ const passwordForm = useForm({
 });
 
 const submitPassword = () => {
-    passwordForm.put('/profile/password', {
+    passwordForm.put(route('profile.password'), {
         preserveScroll: true,
         onSuccess: () => {
             passwordForm.reset();
@@ -154,7 +155,7 @@ const startMfaSetup = async () => {
     mfaLoading.value = true;
     mfaConfirmError.value = '';
     try {
-        const response = await fetch('/profile/mfa/setup', {
+        const response = await fetch(route('profile.mfa.setup'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -182,7 +183,7 @@ const confirmMfa = async () => {
     mfaConfirmError.value = '';
 
     try {
-        const response = await fetch('/profile/mfa/confirm', {
+        const response = await fetch(route('profile.mfa.confirm'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -209,7 +210,7 @@ const confirmMfa = async () => {
 };
 
 const submitDisableMfa = () => {
-    router.delete('/profile/mfa', {
+    router.delete(route('profile.mfa.destroy'), {
         data: { password: disablePassword.value },
         preserveScroll: true,
         onSuccess: () => {
@@ -422,7 +423,7 @@ const copySecret = () => {
                         v-for="provider in linkedProviders"
                         :key="provider.provider"
                         :provider="provider"
-                        :connect-url="`/profile/social-connections/${provider.provider}/connect`"
+                        :connect-url="route('profile.social.connect', provider.provider)"
                         :can-unlink="canUnlink(provider.provider)"
                         @unlink="requestUnlink"
                     />

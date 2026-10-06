@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm, usePage, Head } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import type { PageProps } from '@/types';
 
 const props = defineProps<{
@@ -21,7 +22,7 @@ const form = useForm({
 
 const submit = () => {
     form.email = form.login;
-    form.post('/login', {
+    form.post(route('login.store'), {
         onFinish: () => {
             form.password = '';
         },

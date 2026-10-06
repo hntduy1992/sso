@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { route } from 'ziggy-js';
 import type { PageProps } from '@/types';
 
 defineProps<{
@@ -9,7 +10,7 @@ defineProps<{
 const page = usePage<PageProps>();
 
 const switchAccount = () => {
-    router.post('/logout');
+    router.post(route('logout'));
 };
 </script>
 
@@ -42,13 +43,13 @@ const switchAccount = () => {
                 </p>
 
                 <div class="mt-7 flex flex-col sm:flex-row gap-3">
-                    <a
+                    <Link
                         id="access-denied-portal"
-                        href="/dashboard"
+                        :href="route('dashboard')"
                         class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 transition"
                     >
                         Về trang tài khoản
-                    </a>
+                    </Link>
                     <button
                         id="access-denied-switch-account"
                         type="button"
