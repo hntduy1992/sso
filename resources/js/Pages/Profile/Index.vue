@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import SocialProviderCard from '@/Pages/Profile/components/SocialProviderCard.vue';
+// import SocialProviderCard from '@/Pages/Profile/components/SocialProviderCard.vue';
 import DateInput from '@/Components/DateInput.vue';
 
 interface ProfileData {
@@ -38,7 +38,7 @@ interface LinkedProvider {
 const props = defineProps<{
     profile: ProfileData;
     userProfile: UserProfileData;
-    linkedProviders: LinkedProvider[];
+    linkedProviders?: LinkedProvider[];
 }>();
 
 // ── Personal Profile Form ────────────────────────────────────────────────────
@@ -79,37 +79,29 @@ const submitAvatar = () => {
     });
 };
 
-// ── Social Connections ───────────────────────────────────────────────────────
-const showUnlinkModal = ref(false);
-const unlinkProvider = ref('');
-
-const connectedCount = computed(
-    () => props.linkedProviders.filter((p) => p.connected).length,
-);
-
-/**
- * A provider can be unlinked if the user has a password OR there's at least
- * one other connected provider remaining after the unlink.
- */
-const canUnlink = (provider: string): boolean => {
-    if (props.profile.has_password) { return true; }
-    const otherConnected = props.linkedProviders.filter(
-        (p) => p.provider !== provider && p.connected,
-    ).length;
-    return otherConnected > 0;
-};
-
-const requestUnlink = (provider: string) => {
-    unlinkProvider.value = provider;
-    showUnlinkModal.value = true;
-};
-
-const confirmUnlink = () => {
-    router.delete(route('profile.social.destroy', unlinkProvider.value), {
-        preserveScroll: true,
-        onSuccess: () => { showUnlinkModal.value = false; },
-    });
-};
+// ── Social Connections (Tạm thời vô hiệu hóa theo yêu cầu) ────────────────────
+// const showUnlinkModal = ref(false);
+// const unlinkProvider = ref('');
+// const connectedCount = computed(
+//     () => (props.linkedProviders || []).filter((p) => p.connected).length,
+// );
+// const canUnlink = (provider: string): boolean => {
+//     if (props.profile.has_password) { return true; }
+//     const otherConnected = (props.linkedProviders || []).filter(
+//         (p) => p.provider !== provider && p.connected,
+//     ).length;
+//     return otherConnected > 0;
+// };
+// const requestUnlink = (provider: string) => {
+//     unlinkProvider.value = provider;
+//     showUnlinkModal.value = true;
+// };
+// const confirmUnlink = () => {
+//     router.delete(route('profile.social.destroy', unlinkProvider.value), {
+//         preserveScroll: true,
+//         onSuccess: () => { showUnlinkModal.value = false; },
+//     });
+// };
 
 // ── Account Info Form (backward compat - avatar URL field) ───────────────────
 const profileForm = useForm({
@@ -399,7 +391,8 @@ const copySecret = () => {
                 </form>
             </div>
 
-            <!-- ═══ SECTION: Kết nối tài khoản ══════════════════════════════ -->
+            <!-- ═══ SECTION: Kết nối tài khoản (Tạm thời ẩn khi chưa triển khai Google / Zalo) ═══ -->
+            <!--
             <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur-xl shadow-xl">
                 <div class="flex items-center justify-between pb-6 border-b border-slate-800/80 mb-6">
                     <div class="flex items-center gap-3">
@@ -410,11 +403,11 @@ const copySecret = () => {
                         </div>
                         <div>
                             <h2 class="text-lg font-semibold text-slate-100">Kết nối Tài khoản Ngoài</h2>
-                            <p class="text-xs text-slate-400">Liên kết để đăng nhập nhanh bằng Google hoặc GitHub.</p>
+                            <p class="text-xs text-slate-400">Liên kết để đăng nhập nhanh bằng Google hoặc Zalo.</p>
                         </div>
                     </div>
                     <span class="px-2.5 py-1 rounded-full text-xs font-medium border bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
-                        {{ connectedCount }}/{{ linkedProviders.length }} đã kết nối
+                        {{ connectedCount }}/{{ (linkedProviders || []).length }} đã kết nối
                     </span>
                 </div>
 
@@ -433,6 +426,7 @@ const copySecret = () => {
                     ⚠️ Tài khoản này chưa đặt mật khẩu. Bạn cần giữ ít nhất một kết nối để có thể đăng nhập. Hãy đặt mật khẩu trong phần bên dưới để tăng tính bảo mật.
                 </p>
             </div>
+            -->
 
             <!-- ═══ SECTION: Thông tin Tài khoản (Account Info) ════════════ -->
 
@@ -770,7 +764,8 @@ const copySecret = () => {
         </div>
     </AppLayout>
 
-    <!-- Modal: Xác nhận Hủy liên kết Provider -->
+    <!-- Modal: Xác nhận Hủy liên kết Provider (Tạm thời ẩn) -->
+    <!--
     <div v-if="showUnlinkModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
         <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5">
             <div class="flex items-center gap-3 text-rose-400">
@@ -803,5 +798,6 @@ const copySecret = () => {
             </div>
         </div>
     </div>
+    -->
 </template>
 

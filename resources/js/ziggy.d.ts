@@ -23,41 +23,11 @@ declare module 'ziggy-js' {
     "login.store": [],
     "mfa.challenge": [],
     "mfa.challenge.store": [],
-    "social.redirect": [
-        {
-            "name": "provider",
-            "required": true
-        }
-    ],
-    "social.callback": [
-        {
-            "name": "provider",
-            "required": true
-        }
-    ],
     "logout": [],
     "profile.index": [],
     "profile.update": [],
     "profile.avatar": [],
     "profile.password": [],
-    "profile.social.connect": [
-        {
-            "name": "provider",
-            "required": true
-        }
-    ],
-    "profile.social.callback": [
-        {
-            "name": "provider",
-            "required": true
-        }
-    ],
-    "profile.social.destroy": [
-        {
-            "name": "provider",
-            "required": true
-        }
-    ],
     "profile.mfa.setup": [],
     "profile.mfa.confirm": [],
     "profile.mfa.destroy": [],
@@ -200,6 +170,12 @@ declare module 'ziggy-js' {
         }
     ],
     "admin.users.reset-password": [
+        {
+            "name": "id",
+            "required": true
+        }
+    ],
+    "admin.users.reset-mfa": [
         {
             "name": "id",
             "required": true
